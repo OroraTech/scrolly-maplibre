@@ -116,6 +116,8 @@ export class LayerManager {
             const animatedLayer = new AnimatedPaths(this.map, {
                 sourceId: layerId,
                 sourceLayer: layerCfg.sourceLayer,
+                // GeoJSON sources are tiled too, so read whole lines from the file itself
+                data: layerCfg.type === 'geojson' ? (layerCfg.url || layerCfg.data) : null,
                 ...layerCfg.animationOptions
             });
             this.customLayers.set(layerId, animatedLayer);
@@ -303,8 +305,7 @@ export class LayerManager {
      * @param {string} layerId - Layer ID
      */
     async _loadGeoJSONLayer(layerCfg, layerId) {
-        const response = await fetch(layerCfg.url);
-        const data = layerCfg.url ? await response.json() : layerCfg.data;
+        const data = layerCfg.url ? await (await fetch(layerCfg.url)).json() : layerCfg.data;
 
         this.map.addSource(layerId, { type: 'geojson', data });
 

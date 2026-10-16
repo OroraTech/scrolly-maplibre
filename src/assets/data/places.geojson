@@ -1,0 +1,8 @@
+{"type":"FeatureCollection","features":[
+{"type":"Feature","properties":{"name":"Ely"},"geometry":{"type":"Point","coordinates":[-91.867,47.903]}},
+{"type":"Feature","properties":{"name":"Boundary Waters"},"geometry":{"type":"Point","coordinates":[-91.25,48.02]}},
+{"type":"Feature","properties":{"name":"Rainy Lake"},"geometry":{"type":"Point","coordinates":[-93.0,48.62]}},
+{"type":"Feature","properties":{"name":"Lake of the Woods"},"geometry":{"type":"Point","coordinates":[-94.85,49.3]}},
+{"type":"Feature","properties":{"name":"Lake Winnipeg"},"geometry":{"type":"Point","coordinates":[-97.7,52.4]}},
+{"type":"Feature","properties":{"name":"Hudson Bay"},"geometry":{"type":"Point","coordinates":[-89.5,58.2]}}
+]}

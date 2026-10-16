@@ -42,3 +42,39 @@ test('defaults keep the original wind behaviour', () => {
     assert.equal(paths.options.layerId, 'wind-trails');
     assert.equal(paths._width({ speed: 30 }), 8);
 });
+
+// Minimal stand-ins for deck.gl, the map, and the animation frame loop.
+function stubDeck() {
+    globalThis.deck = {
+        MapboxOverlay: class { constructor(props) { this.props = props; } setProps(props) { this.props = props; } },
+        TripsLayer: class { constructor(props) { this.props = props; } },
+        TerrainLayer: class { constructor(props) { this.props = props; } }
+    };
+    globalThis.requestAnimationFrame = () => 1;
+    globalThis.cancelAnimationFrame = () => {};
+}
+
+function stubMap() {
+    return { controls: 0, addControl() { this.controls++; }, removeControl() { this.controls--; } };
+}
+
+test('show() called twice while loading adds one overlay', async () => {
+    stubDeck();
+    const map = stubMap();
+    const paths = new AnimatedPaths(map, { sourceId: 'river', data: network, terrain: false });
+    await Promise.all([paths.show(), paths.show()]);
+    assert.equal(map.controls, 1);
+    paths.hide();
+    assert.equal(map.controls, 0);
+});
+
+test('hide() while loading stops the overlay from appearing', async () => {
+    stubDeck();
+    const map = stubMap();
+    const paths = new AnimatedPaths(map, { sourceId: 'river', data: network, terrain: false });
+    const showing = paths.show();
+    paths.hide();
+    await showing;
+    assert.equal(map.controls, 0);
+    assert.equal(paths.overlay, null);
+});

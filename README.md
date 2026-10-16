@@ -13,6 +13,19 @@ It supports:
 - Several stories on one page
 - Keyboard navigation, ARIA labels, and screen reader announcements
 
+## Demo
+
+The demo story follows water from a proposed mine site near the Boundary Waters in Minnesota to Hudson Bay.
+It needs a MapTiler key in `src/config/keys.js` (see step 1 below).
+
+```bash
+npm install
+npm start
+```
+
+`npm start` builds the site and opens `dist/` in a browser.
+The story config is [`src/config/example.json`](src/config/example.json), and its data is in `src/assets/data/`.
+
 ## Quick start
 
 1. Install the build tools and add your MapTiler key.
@@ -23,7 +36,7 @@ It supports:
    ```
 
 2. Write a story config and save it as `src/config/<story-id>.json`.
-   See [Configuration](#configuration) and [`src/config/example.json`](src/config/example.json), which uses placeholder data URLs.
+   See [Configuration](#configuration) and the demo config, [`src/config/example.json`](src/config/example.json).
 
 3. Add the story to a page.
    Set `window.scrollId` in an inline script and load the framework.
@@ -145,7 +158,7 @@ PMTiles and vector layers also need `sourceLayer`.
   },
   "legend": {
     "title": "Burn severity",
-    "type": "categorical",
+    "type": "polygon",
     "items": [
       { "label": "High", "color": "#8B0000" },
       { "label": "Moderate", "color": "#FF4500" },
@@ -155,7 +168,8 @@ PMTiles and vector layers also need `sourceLayer`.
 }
 ```
 
-Legend items can set `"type"` to `point`, `line`, or `polygon` (the default) to change the swatch.
+A legend needs a `type`: `point`, `line`, `polygon`, `continuous`, or `mixed`.
+In a `mixed` legend, each item can set its own `type` to `point`, `line`, or `polygon` to change the swatch.
 
 ### Animated paths
 
@@ -175,6 +189,7 @@ Without it, timestamps are spaced evenly from the line's `speed` property.
 | `widthScale` | `1` | Multiplier for `widthProperty` |
 | `data` | none | GeoJSON URL or object to read whole lines from, instead of the loaded map tiles |
 | `normalizeDuration` | `true` | Stretch every line to the same duration. Set `false` to keep the timestamps as they are, so lines share one clock |
+| `fade` | `0.15` | Share of the run spent fading in, and fading out when looping. `0` turns fading off |
 | `loop` | `true` | Restart when the animation ends. Set `false` to play once and keep the whole route drawn |
 | `terrain` | `true` | Drape the lines over deck.gl terrain |
 | `fixedElevation` | none | Fixed height in metres, instead of the terrain height |
@@ -225,6 +240,19 @@ For a river network, give each reach timestamps measured from one starting point
 }
 ```
 
+### Tracing a river route
+
+`scripts/trace_downstream.py` builds the GeoJSON for a river flow animation.
+It finds the [HydroRIVERS](https://www.hydrosheds.org/products/hydrorivers) reach nearest a point and follows it downstream to the sea.
+Each vertex gets a timestamp equal to its distance in kilometres from the start, and each reach gets a `width` from its average discharge.
+
+```bash
+pip install pyshp
+python scripts/trace_downstream.py HydroRIVERS_v10_na.shp -91.73 47.81 src/assets/data/route.geojson
+```
+
+Use the output with `normalizeDuration: false`, `widthProperty: "width"`, and `widthUnits: "pixels"`.
+
 ## Theming
 
 Colours and the font are CSS custom properties in `src/styles/styles.css`.
@@ -244,6 +272,7 @@ Override them on `:root` or on a `.story-container`:
 
 | Command | Purpose |
 | --- | --- |
+| `npm start` | Build, then serve `dist/` and open it in a browser |
 | `npm run build` | Bundle, minify, and copy everything to `dist/` |
 | `npm run preview` | Serve `dist/` locally |
 | `npm test` | Run the unit tests |
@@ -260,3 +289,13 @@ src/js/
 ```
 
 The framework needs a browser with WebGL.
+
+## Data
+
+The demo route in `src/assets/data/route.geojson` is derived from HydroRIVERS:
+Lehner, B., and Grill, G. (2013). Global river hydrography and network routing: baseline data and new approaches to study the world's large river systems. *Hydrological Processes*, 27(15), 2171–2186. Data available at [www.hydrosheds.org](https://www.hydrosheds.org).
+The mine site location is approximate.
+
+## License
+
+[MIT](LICENSE)

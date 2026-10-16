@@ -31,10 +31,16 @@ export class AnimatedPaths {
         // Feature property that sets line width, multiplied by widthScale; defaults to the speed steps
         widthProperty: options.widthProperty || null,
         widthScale: options.widthScale ?? 1,
+        // Units for line width: 'meters' or 'pixels'
+        widthUnits: options.widthUnits || 'meters',
+        // Share of the run spent fading in, and fading out when looping
+        fade: options.fade ?? 0.15,
         layerId: options.layerId || `${options.sourceId}-trails`,
         ...options
     };
     this._maxTimestamp = 0;
+    this._generation = 0;
+    this._showing = false;
   }
 
   async _waitForSource() {
@@ -146,9 +152,19 @@ export class AnimatedPaths {
     }
 }
 
- async show() {
-  if (this.overlay) return;
+  async show() {
+    // Steps can call show() again, or hide(), while the data is still loading
+    if (this.overlay || this._showing) return;
+    this._showing = true;
+    const generation = this._generation;
+    try {
+      await this._show(generation);
+    } finally {
+      this._showing = false;
+    }
+  }
 
+ async _show(generation) {
   if (typeof deck === 'undefined') {
     console.error('Deck.gl not loaded - animated paths require deck.gl library');
     this.trackError('dependency_missing', new Error('Deck.gl not loaded'));
@@ -167,6 +183,9 @@ export class AnimatedPaths {
 
   await new Promise(resolve => setTimeout(resolve, 1000));
     await this.loadPathData();
+
+    // hide() was called while loading
+    if (generation !== this._generation) return;
 
     if (this.pathData.length === 0) {
       console.error('No path data loaded, cannot show animation');
@@ -223,9 +242,11 @@ export class AnimatedPaths {
 
         // Calculate fade opacity based on position in cycle
         let fadeOpacity = 1.0;
-        const fadeZone = maxTs * 0.15;
+        const fadeZone = maxTs * this.options.fade;
 
-        if (this.animationTime < fadeZone) {
+        if (fadeZone <= 0) {
+          fadeOpacity = 1.0;
+        } else if (this.animationTime < fadeZone) {
           const progress = this.animationTime / fadeZone;
           fadeOpacity = progress * progress * progress;
         } else if (this.options.loop && this.animationTime > maxTs - fadeZone) {
@@ -298,6 +319,7 @@ export class AnimatedPaths {
       getTimestamps: d => d.timestamps,
       getColor: d => this.options.pathColor,
       getWidth: d => this._width(d),
+      widthUnits: this.options.widthUnits,
       trailLength,
       opacity: fadeOpacity,
       widthMinPixels: 2,
@@ -316,6 +338,7 @@ export class AnimatedPaths {
   }
 
   hide() {
+    this._generation++;
     if (this.animationId) {
       cancelAnimationFrame(this.animationId);
       this.animationId = null;
