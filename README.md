@@ -250,7 +250,7 @@ Formatting is built as DOM nodes, never as HTML, so story text cannot inject mar
 | --- | --- | --- |
 | `text` | `content` (string or array of paragraphs), `style` | `heading`, `subheading`, `paragraph`, `lede`, `kicker`, or `note` |
 | `media` | `mediaType` (`image` or `video`), `url`, `alt`, `caption`, `credit`, `position` | An image or video with a caption and credit line |
-| `hero` | `image`, `alt`, `kicker`, `title`, `dek`, `byline`, `credit` | A full-screen opening image with the title over it |
+| `hero` | `image` or `video` (with `image` as its poster), `alt`, `kicker`, `title`, `dek`, `byline`, `credit` | A full-screen opening image with the title over it |
 | `quote` | `content`, `attribution`, `cite` | A pull quote |
 | `stats` | `items` of `{ value, label, note }`, `caption`, `credit` | A row of headline numbers |
 | `embed` | `url`, `title`, `height`, `mobileHeight`, `caption`, `credit`, `position` | An iframe, such as an interactive chart |

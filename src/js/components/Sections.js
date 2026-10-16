@@ -157,7 +157,21 @@ function listenForEmbedHeight(frame) {
 
 function createHero(section, doc) {
     const header = el('header', 'story-hero', doc);
-    if (section.image) {
+    if (section.video) {
+        // A silent looping background video, with the image as its poster
+        const video = el('video', 'hero-image', doc);
+        video.src = section.video;
+        if (section.image) video.poster = section.image;
+        video.muted = true;
+        video.loop = true;
+        video.autoplay = true;
+        video.playsInline = true;
+        video.setAttribute('aria-label', section.alt || '');
+        if (typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) {
+            video.autoplay = false;
+        }
+        header.appendChild(video);
+    } else if (section.image) {
         const img = el('img', 'hero-image', doc);
         img.src = section.image;
         img.alt = section.alt || '';
