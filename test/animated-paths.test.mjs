@@ -78,3 +78,29 @@ test('hide() while loading stops the overlay from appearing', async () => {
     assert.equal(map.controls, 0);
     assert.equal(paths.overlay, null);
 });
+
+test('a scroll-driven flow starts at its target time', () => {
+    const paths = new AnimatedPaths(noMap, { sourceId: 'river', data: network, scrollDriven: true, reveal: true });
+    paths.setProgressTime(25);
+    assert.equal(paths.animationTime, 25);
+    paths.setProgressTime(Number.NaN);
+    assert.equal(paths._targetTime, 25);
+});
+
+test('the head marker sits where the flow has reached', async () => {
+    // One timestamp per vertex: the reach runs from x = 1 at t = 10 to x = 3 at t = 40
+    const reach = { type: 'Feature', properties: { timestamps: [10, 25, 40] }, geometry: { type: 'LineString', coordinates: [[1, 0], [2, 0], [3, 0]] } };
+    const paths = new AnimatedPaths(noMap, { sourceId: 'river', data: { type: 'FeatureCollection', features: [reach] }, normalizeDuration: false });
+    await paths.loadPathData();
+    paths.animationTime = 25;
+    const heads = paths._headPositions();
+    assert.equal(heads.length, 1);
+    assert.ok(Math.abs(heads[0].position[0] - 2) < 1e-9);
+});
+
+test('data read from a file is kept after hide()', async () => {
+    const paths = new AnimatedPaths(noMap, { sourceId: 'river', data: network, normalizeDuration: false });
+    await paths.loadPathData();
+    paths.hide();
+    assert.equal(paths.pathData.length, 2);
+});

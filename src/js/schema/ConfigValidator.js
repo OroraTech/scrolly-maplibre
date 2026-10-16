@@ -100,6 +100,11 @@ export class ConfigValidator {
                 case 'list':
                     if (!Array.isArray(content.items)) throw new Error(`Missing items in ${where}`);
                     break;
+                case 'scrolly-embed':
+                    if (!content.url) throw new Error(`Missing url in ${where}`);
+                    if (!content.title) throw new Error(`Missing title in ${where}. Embeds need a title for screen readers`);
+                    if (!Array.isArray(content.steps) || content.steps.length === 0) throw new Error(`Missing steps in ${where}`);
+                    break;
                 case 'compare':
                     ['before', 'after'].forEach(key => {
                         if (!content[key]?.url) throw new Error(`Missing ${key}.url in ${where}`);

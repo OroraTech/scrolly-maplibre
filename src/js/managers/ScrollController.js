@@ -23,6 +23,8 @@ export class ScrollController {
      * @param {Array} steps - Story steps
      */
     setupScrollama(steps) {
+        this._setupStepProgress(steps);
+
         // iOS optimization: Use IntersectionObserver instead of scroll events when supported
         const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent);
         
@@ -52,6 +54,46 @@ export class ScrollController {
     }
 
     /**
+     * Reports how far the reader is through each step that sets animate, on every device.
+     * Progress runs from 0 when the step's top reaches the middle of the screen
+     * to 1 when its bottom does.
+     * @param {Array} steps - Story steps
+     */
+    _setupStepProgress(steps) {
+        if (!steps.some(step => step.animate)) return;
+        let queued = false;
+
+        const update = () => {
+            queued = false;
+            const elements = document.querySelectorAll(`#${this.scrollyMap.options.scrollContainer} .scroll-step`);
+            const middle = window.innerHeight / 2;
+            let current = null;
+            elements.forEach((el, index) => {
+                if (!steps[index]?.animate) return;
+                const rect = el.getBoundingClientRect();
+                // The last step whose top has passed the middle of the screen
+                if (rect.top <= middle) current = { index, rect };
+            });
+            if (!current) {
+                const first = steps.findIndex(step => step.animate);
+                if (first >= 0) this.scrollyMap.layerManager.setStepProgress(steps[first], 0);
+                return;
+            }
+            const progress = Math.max(0, Math.min(1, (middle - current.rect.top) / current.rect.height));
+            this.scrollyMap.layerManager.setStepProgress(steps[current.index], progress);
+        };
+
+        this._progressHandler = () => {
+            if (queued) return;
+            queued = true;
+            requestAnimationFrame(update);
+        };
+        window.addEventListener('scroll', this._progressHandler, { passive: true });
+        window.addEventListener('resize', this._progressHandler, { passive: true });
+        update();
+    }
+
+    /**
      * Sets up IntersectionObserver for iOS devices (passive scroll alternative)
      * @param {Array} steps - Story steps
      */
@@ -61,6 +103,10 @@ export class ScrollController {
         // Clean up existing observer if any
         if (this._iosObserver) {
             this._iosObserver.disconnect();
+        }
+        if (this._progressHandler) {
+            window.removeEventListener('scroll', this._progressHandler);
+            window.removeEventListener('resize', this._progressHandler);
         }
         
         const scrollOffset = this._calculateScrollOffset();

@@ -36,11 +36,33 @@ export class AnimatedPaths {
         // Share of the run spent fading in, and fading out when looping
         fade: options.fade ?? 0.15,
         layerId: options.layerId || `${options.sourceId}-trails`,
+        // Let scrolling set the time instead of a loop: steps call setProgressTime()
+        scrollDriven: options.scrollDriven ?? false,
+        // Draw every path behind the current time as a solid line, so the flow grows and shrinks
+        reveal: options.reveal ?? false,
+        // RGBA colour of a marker at the front of a revealed flow, or null for none
+        headColor: options.headColor ?? null,
+        // How quickly a scroll-driven flow catches up to its target, in milliseconds
+        smoothing: options.smoothing ?? 220,
         ...options
     };
     this._maxTimestamp = 0;
     this._generation = 0;
     this._showing = false;
+    this._loaded = false;
+    this._targetTime = null;
+    this._lastFrame = null;
+  }
+
+  /**
+   * Sets the time a scroll-driven flow should move to. The animation eases toward it.
+   * @param {number} time - In the same units as the path timestamps
+   */
+  setProgressTime(time) {
+    if (!Number.isFinite(time)) return;
+    this._targetTime = time;
+    // Before the first frame, start at the target rather than easing in from zero
+    if (!this.overlay) this.animationTime = time;
   }
 
   async _waitForSource() {
@@ -85,6 +107,7 @@ export class AnimatedPaths {
   }
 
   async loadPathData() {
+    if (this._loaded && this.pathData.length) return;
     const features = await this._loadFeatures();
     if (!features) return;
 
@@ -145,6 +168,7 @@ export class AnimatedPaths {
         });
 
         this._maxTimestamp = this.options.normalizeDuration ? maxDuration : maxTimestamp;
+        this._loaded = Boolean(this.options.data);
 
     } catch (error) {
         console.error('Error processing path data:', error);
@@ -181,7 +205,8 @@ export class AnimatedPaths {
     }
   }
 
-  await new Promise(resolve => setTimeout(resolve, 1000));
+  // Tile-based paths need the tiles to settle before they can be read
+  if (!this.options.data) await new Promise(resolve => setTimeout(resolve, 1000));
     await this.loadPathData();
 
     // hide() was called while loading
@@ -237,8 +262,21 @@ export class AnimatedPaths {
           return;
         }
 
-        this.animationTime += this.options.animationSpeed;
+        const now = performance.now();
+        // Scale by elapsed time so the speed is the same at any frame rate (animationSpeed is per 60fps frame)
+        const dt = this._lastFrame === null ? 16.67 : Math.min(100, now - this._lastFrame);
+        this._lastFrame = now;
         const maxTs = this._maxTimestamp;
+
+        if (this.options.scrollDriven) {
+          const target = Math.max(0, Math.min(maxTs, this._targetTime ?? 0));
+          this.animationTime += (target - this.animationTime) * (1 - Math.exp(-dt / this.options.smoothing));
+          this._renderTrips(1);
+          this._animate();
+          return;
+        }
+
+        this.animationTime += this.options.animationSpeed * (dt / 16.67);
 
         // Calculate fade opacity based on position in cycle
         let fadeOpacity = 1.0;
@@ -285,7 +323,27 @@ export class AnimatedPaths {
   }
 
   _layers() {
-    return [this.tripsLayer, this.terrainLayer].filter(Boolean);
+    return [this.tripsLayer, this.headLayer, this.terrainLayer].filter(Boolean);
+  }
+
+  /** Positions where each path is at the current time, for the head marker. */
+  _headPositions() {
+    const t = this.animationTime;
+    const heads = [];
+    for (const d of this.pathData) {
+      const ts = d.timestamps;
+      if (!ts.length || t < ts[0] || t > ts[ts.length - 1]) continue;
+      for (let i = 1; i < ts.length; i++) {
+        if (t <= ts[i]) {
+          const f = ts[i] === ts[i - 1] ? 0 : (t - ts[i - 1]) / (ts[i] - ts[i - 1]);
+          const a = d.path[i - 1];
+          const b = d.path[i];
+          heads.push({ position: [a[0] + (b[0] - a[0]) * f, a[1] + (b[1] - a[1]) * f] });
+          break;
+        }
+      }
+    }
+    return heads;
   }
 
   _width(d) {
@@ -302,6 +360,8 @@ export class AnimatedPaths {
   }
 
   _renderTrips(fadeOpacity, trailLength = this.options.trailLength) {
+    const reveal = this.options.reveal;
+    if (reveal) trailLength = Math.max(this.animationTime, 0) + 1;
     // Only recreate the TripsLayer, keep terrainLayer cached
     this.tripsLayer = new deck.TripsLayer({
       id: this.options.layerId,
@@ -326,11 +386,24 @@ export class AnimatedPaths {
       widthMaxPixels: 20,
       currentTime: this.animationTime,
       billboard: false,
-      fadeTrail: true,
+      fadeTrail: !reveal,
       material: {
         alphaCutoff: 0.01
       }
     });
+
+    this.headLayer = reveal && this.options.headColor && this.animationTime > 0.5 ? new deck.ScatterplotLayer({
+      id: `${this.options.layerId}-head`,
+      data: this._headPositions(),
+      getPosition: d => d.position,
+      getRadius: 6,
+      radiusUnits: 'pixels',
+      getFillColor: this.options.headColor,
+      stroked: true,
+      getLineColor: [255, 255, 255, 255],
+      lineWidthUnits: 'pixels',
+      getLineWidth: 2
+    }) : null;
 
     this.overlay.setProps({
       layers: this._layers(),
@@ -350,8 +423,11 @@ export class AnimatedPaths {
 
     this.terrainLayer = null;
     this.tripsLayer = null;
-    this.pathData = [];
-    this.animationTime = 0;
+    this.headLayer = null;
+    this._lastFrame = null;
+    // Keep data read from a file; tile data must be read again next time
+    if (!this._loaded) this.pathData = [];
+    if (!this.options.scrollDriven) this.animationTime = 0;
     this.frameCount = 0;
     this.errorCount = 0;
   }

@@ -6,7 +6,7 @@ import { appendRichText, isSafeUrl, richParagraphs } from '../utils/richText.js'
  */
 
 export const TEXT_STYLES = ['heading', 'subheading', 'paragraph', 'lede', 'kicker', 'note'];
-export const SECTION_TYPES = ['text', 'media', 'quote', 'stats', 'embed', 'hero', 'divider', 'list', 'compare'];
+export const SECTION_TYPES = ['text', 'media', 'quote', 'stats', 'embed', 'hero', 'divider', 'list', 'compare', 'scrolly-embed'];
 export const MEDIA_POSITIONS = ['full-width', 'wide', 'inline', 'left', 'right'];
 
 function el(tag, className, doc = document) {
@@ -96,8 +96,10 @@ function createQuote(section, doc) {
 }
 
 function createStats(section, doc) {
-    const wrapper = el('div', 'story-stats', doc);
+    const wrapper = el('div', `story-stats position-${section.position || 'full-width'}`, doc);
     const list = el('dl', 'stat-row', doc);
+    // One column per stat, so a row of four stays on one line
+    list.style.setProperty('--stat-count', String((section.items || []).length || 1));
     (section.items || []).forEach(item => {
         const tile = el('div', 'stat-tile', doc);
         const value = el('dd', 'stat-value', doc);
@@ -221,7 +223,74 @@ function createCompare(section, doc) {
     return figure;
 }
 
+/**
+ * A sticky graphic with text steps that scroll past it. The framework posts
+ * { type: 'scrolly-step', index, progress } to the embedded page as the reader moves
+ * through each step, so the graphic can change with the story.
+ */
+function createScrollyEmbed(section, doc) {
+    const wrapper = el('section', 'story-scrolly-embed', doc);
+    const graphic = el('div', 'se-graphic', doc);
+    const frame = el('iframe', '', doc);
+    frame.src = section.url;
+    frame.title = section.title || 'Embedded graphic';
+    frame.loading = 'eager';
+    graphic.appendChild(frame);
+
+    const stepsEl = el('div', 'se-steps', doc);
+    (section.steps || []).forEach((step, index) => {
+        const stepEl = el('div', 'se-step', doc);
+        stepEl.dataset.index = String(index);
+        const card = el('div', 'se-card', doc);
+        if (step.kicker) appendRichText(card.appendChild(el('p', 'se-kicker', doc)), step.kicker);
+        if (step.title) appendRichText(card.appendChild(el('h3', 'se-title', doc)), step.title);
+        richParagraphs(step.content, 'p', doc).forEach(p => card.appendChild(p));
+        stepEl.appendChild(card);
+        stepsEl.appendChild(stepEl);
+    });
+
+    wrapper.append(graphic, stepsEl);
+    const caption = createFigcaption(section.caption, section.credit, doc);
+    if (caption) wrapper.appendChild(caption);
+    if (typeof window !== 'undefined') trackScrollySteps(wrapper, frame);
+    return wrapper;
+}
+
+function trackScrollySteps(wrapper, frame) {
+    let last = '';
+    let queued = false;
+    const post = () => {
+        queued = false;
+        const steps = wrapper.querySelectorAll('.se-step');
+        const middle = window.innerHeight / 2;
+        let index = 0;
+        let progress = 0;
+        steps.forEach((stepEl, i) => {
+            const rect = stepEl.getBoundingClientRect();
+            if (rect.top <= middle) {
+                index = i;
+                progress = Math.max(0, Math.min(1, (middle - rect.top) / rect.height));
+            }
+        });
+        steps.forEach((stepEl, i) => stepEl.classList.toggle('is-active', i === index));
+        const message = { type: 'scrolly-step', index, progress: Math.round(progress * 1000) / 1000 };
+        const key = `${message.index}:${message.progress}`;
+        if (key === last || !frame.contentWindow) return;
+        last = key;
+        frame.contentWindow.postMessage(message, '*');
+    };
+    const queue = () => {
+        if (queued) return;
+        queued = true;
+        requestAnimationFrame(post);
+    };
+    window.addEventListener('scroll', queue, { passive: true });
+    window.addEventListener('resize', queue, { passive: true });
+    frame.addEventListener('load', () => { last = ''; post(); });
+}
+
 const BUILDERS = {
+    'scrolly-embed': createScrollyEmbed,
     compare: createCompare,
     text: createText,
     media: createMedia,

@@ -199,6 +199,19 @@ Without it, timestamps are spaced evenly from the line's `speed` property.
 | `interleaved` | `false` | Draw between map layers rather than above them |
 | `layerId` | `<layer id>-trails` | deck.gl layer id |
 
+| `scrollDriven` | `false` | Let scrolling set the time instead of a loop (see below) |
+| `reveal` | `false` | Draw every path up to the current time as a solid line, so the flow grows and shrinks |
+| `headColor` | none | RGBA colour of a marker at the front of a revealed flow |
+| `smoothing` | `220` | How quickly a scroll-driven flow catches up, in milliseconds |
+
+Animation speed is measured per 60fps frame and scaled by elapsed time, so it is the same on fast and slow devices.
+
+For a scroll-driven flow, each step names the time range to cover with `animate`. The flow moves from the first value to the second as the reader scrolls through the step, and back again when they scroll up:
+
+```json
+{ "id": 2, "visibleLayers": ["route_flow"], "animate": { "route_flow": [22, 110] } }
+```
+
 For wind particles, the defaults work as they are.
 For a river network, give each reach timestamps measured from one starting point, and turn off normalizing and terrain:
 
@@ -242,6 +255,7 @@ Formatting is built as DOM nodes, never as HTML, so story text cannot inject mar
 | `stats` | `items` of `{ value, label, note }`, `caption`, `credit` | A row of headline numbers |
 | `embed` | `url`, `title`, `height`, `mobileHeight`, `caption`, `credit`, `position` | An iframe, such as an interactive chart |
 | `compare` | `before` and `after` (`{ url, alt, label }`), `caption`, `credit`, `start` | Two aligned images with a slider |
+| `scrolly-embed` | `url`, `title`, `steps` of `{ kicker, title, content }`, `caption`, `credit` | A sticky graphic beside text steps that scroll past it |
 | `list` | `items`, `ordered` | A list, such as sources |
 | `divider` | none | A thin rule |
 
@@ -265,6 +279,10 @@ An embedded page can size its own frame by posting its height to the story:
 ```js
 window.parent.postMessage({ type: 'scrolly-embed-height', height: document.documentElement.scrollHeight }, '*');
 ```
+
+`scrolly-embed` posts `{ type: 'scrolly-step', index, progress }` to the embedded page as the reader scrolls, where `progress` runs from 0 to 1 through each step, so the graphic can change with the story.
+
+Stat rows stay on one line on wider screens; set `position: "wide"` for four or more.
 
 Steps can also set `kicker` (a small label above the title) and `className`, and `description` can be an array of paragraphs.
 

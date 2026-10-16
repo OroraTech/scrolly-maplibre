@@ -113,7 +113,8 @@ export class LayerManager {
         }
         
         if (!this.customLayers.has(layerId)) {
-            await new Promise(resolve => setTimeout(resolve, 500));
+            // Tile-based paths wait for the source; paths read from a file do not need to
+            if (layerCfg.type !== 'geojson') await new Promise(resolve => setTimeout(resolve, 500));
 
             const animatedLayer = new AnimatedPaths(this.map, {
                 sourceId: layerId,
@@ -123,6 +124,40 @@ export class LayerManager {
                 ...layerCfg.animationOptions
             });
             this.customLayers.set(layerId, animatedLayer);
+        }
+    }
+
+    /**
+     * Creates animated GeoJSON layers and reads their data before any step shows them,
+     * so the first animation starts without a pause.
+     * @param {Array} allLayers - All available layers
+     */
+    async preloadAnimatedLayers(allLayers) {
+        this._allLayers = this._allLayers || allLayers;
+        for (const layerCfg of allLayers) {
+            const animated = layerCfg.animationOptions && Object.keys(layerCfg.animationOptions).length > 0;
+            if (!animated || layerCfg.type !== 'geojson') continue;
+            try {
+                await this.loadAnimatedPathsLayer(layerCfg, layerCfg.id);
+                await this.customLayers.get(layerCfg.id)?.loadPathData();
+            } catch (error) {
+                logger.warn(`Could not preload animated layer ${layerCfg.id}: ${error.message}`);
+            }
+        }
+    }
+
+    /**
+     * Sets the time of scroll-driven animated layers from a step's progress.
+     * A step's animate maps layer ids to [start, end] times, reached at the top and bottom of the step.
+     * @param {Object} step - Step configuration
+     * @param {number} progress - 0 to 1 through the step
+     */
+    setStepProgress(step, progress) {
+        for (const [layerId, range] of Object.entries(step?.animate || {})) {
+            const layer = this.customLayers.get(layerId);
+            if (!layer?.setProgressTime || !Array.isArray(range)) continue;
+            const [start, end] = range;
+            layer.setProgressTime(start + (end - start) * progress);
         }
     }
 

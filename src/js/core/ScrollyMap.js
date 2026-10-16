@@ -127,6 +127,8 @@ export class ScrollyMap {
                 }
                 reportProgress(90);
             } else {
+                // Not awaited: animated data loads alongside the tiles
+                this.layerManager.preloadAnimatedLayers(this.options.config.layers || []);
                 await this.tilePreloader.preloadTiles(
                     this.options.config.steps,
                     this.options.config,
