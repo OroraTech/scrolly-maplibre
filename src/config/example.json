@@ -22,10 +22,15 @@
         "cameraDuration": 2500,
         "map": {
           "zoom": 9.5,
-          "center": [-91.75, 47.86],
+          "center": [
+            -91.75,
+            47.86
+          ],
           "pitch": 40,
           "bearing": 0
-        }
+        },
+        "customStyle": "config/basemap.json",
+        "responsive": true
       },
       "layers": [
         {
@@ -34,11 +39,26 @@
           "url": "assets/data/route.geojson",
           "style": {
             "type": "line",
-            "layout": { "line-join": "round", "line-cap": "round" },
+            "layout": {
+              "line-join": "round",
+              "line-cap": "round"
+            },
             "paint": {
               "line-color": "#9fd3ff",
               "line-opacity": 0.35,
-              "line-width": ["interpolate", ["linear"], ["zoom"], 4, 1, 10, 3]
+              "line-width": [
+                "interpolate",
+                [
+                  "linear"
+                ],
+                [
+                  "zoom"
+                ],
+                4,
+                1,
+                10,
+                3
+              ]
             }
           }
         },
@@ -54,11 +74,18 @@
             "animationSpeed": 1.5,
             "trailLength": 250,
             "fade": 0.02,
-            "pathColor": [90, 169, 230, 255]
+            "pathColor": [
+              90,
+              169,
+              230,
+              255
+            ]
           },
           "style": {
             "type": "line",
-            "paint": { "line-opacity": 0 }
+            "paint": {
+              "line-opacity": 0
+            }
           }
         },
         {
@@ -78,7 +105,11 @@
             "title": "Proposed mine",
             "type": "point",
             "items": [
-              { "label": "Site (approximate)", "color": "#e8a23a", "type": "point" }
+              {
+                "label": "Site (approximate)",
+                "color": "#e8a23a",
+                "type": "point"
+              }
             ]
           }
         },
@@ -89,10 +120,18 @@
           "style": {
             "type": "symbol",
             "layout": {
-              "text-field": ["get", "name"],
-              "text-font": ["Figtree Bold"],
+              "text-field": [
+                "get",
+                "name"
+              ],
+              "text-font": [
+                "Noto Sans Medium"
+              ],
               "text-size": 14,
-              "text-offset": [0, 1.2]
+              "text-offset": [
+                0,
+                1.2
+              ]
             },
             "paint": {
               "text-color": "#ffffff",
@@ -108,32 +147,86 @@
           "title": "The site",
           "description": "Twin Metals has proposed an underground copper-nickel mine about 9 miles southeast of Ely, Minnesota. The marker shows an approximate location.",
           "position": "left",
-          "map": { "center": [-91.75, 47.86], "zoom": 9.5, "pitch": 40, "bearing": 0, "duration": 2500 },
-          "visibleLayers": ["site", "places"]
+          "map": {
+            "center": [
+              -91.75,
+              47.86
+            ],
+            "zoom": 9.5,
+            "pitch": 40,
+            "bearing": 0,
+            "duration": 2500
+          },
+          "visibleLayers": [
+            "site",
+            "places"
+          ]
         },
         {
           "id": 2,
           "title": "The water flows north",
           "description": "Rivers here drain north, into the Boundary Waters Canoe Area Wilderness.",
           "position": "left",
-          "map": { "center": [-91.9, 48.1], "zoom": 8.2, "pitch": 30, "bearing": 0, "duration": 3000 },
-          "visibleLayers": ["site", "places", "route_line", "route_flow"]
+          "map": {
+            "center": [
+              -91.9,
+              48.1
+            ],
+            "zoom": 8.2,
+            "pitch": 30,
+            "bearing": 0,
+            "duration": 3000
+          },
+          "visibleLayers": [
+            "site",
+            "places",
+            "route_line",
+            "route_flow"
+          ]
         },
         {
           "id": 3,
           "title": "Across the border",
           "description": "From the wilderness, the water continues west along the border lakes and the Rainy River to Lake of the Woods.",
           "position": "left",
-          "map": { "center": [-93.4, 48.7], "zoom": 6.6, "pitch": 20, "bearing": 0, "duration": 3000 },
-          "visibleLayers": ["site", "places", "route_line", "route_flow"]
+          "map": {
+            "center": [
+              -93.4,
+              48.7
+            ],
+            "zoom": 6.6,
+            "pitch": 20,
+            "bearing": 0,
+            "duration": 3000
+          },
+          "visibleLayers": [
+            "site",
+            "places",
+            "route_line",
+            "route_flow"
+          ]
         },
         {
           "id": 4,
           "title": "To Hudson Bay",
           "description": "It then runs through Lake Winnipeg and down the Nelson River to Hudson Bay, about 1,900 km from the site along this river network.",
           "position": "left",
-          "map": { "center": [-93.8, 52.6], "zoom": 4.6, "pitch": 0, "bearing": 0, "duration": 3500 },
-          "visibleLayers": ["site", "places", "route_line", "route_flow"]
+          "map": {
+            "center": [
+              -93.8,
+              52.6
+            ],
+            "zoom": 4.6,
+            "pitch": 0,
+            "bearing": 0,
+            "duration": 3500
+          },
+          "visibleLayers": [
+            "site",
+            "places",
+            "route_line",
+            "route_flow"
+          ]
         }
       ]
     }
@@ -147,7 +240,7 @@
       },
       {
         "type": "text",
-        "content": "The route is traced downstream from the approximate site with scripts/trace_downstream.py, using HydroRIVERS (Lehner and Grill, 2013; www.hydrosheds.org). The animation timestamps are distances in kilometres along the route. Basemap from MapTiler and OpenStreetMap contributors.",
+        "content": "The route is traced downstream from the approximate site with scripts/trace_downstream.py, using HydroRIVERS (Lehner and Grill, 2013; www.hydrosheds.org). The animation timestamps are distances in kilometres along the route. Imagery: Sentinel-2 cloudless by EOX (contains modified Copernicus Sentinel data 2016).",
         "style": "paragraph"
       }
     ]

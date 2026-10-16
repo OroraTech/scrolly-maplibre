@@ -6,6 +6,11 @@
      --scrolly-text: #f7f7f5;
      --scrolly-accent: #5aa9e6;
      --scrolly-font: Figtree, system-ui, sans-serif;
+     --scrolly-heading-font: var(--scrolly-font);
+     --scrolly-muted: rgb(183, 189, 192);
+     --scrolly-rule: rgba(255, 255, 255, 0.14);
+     --scrolly-card-bg: rgba(250, 249, 247, 0.6);
+     --scrolly-card-text: var(--scrolly-bg);
 }
 
 /* ========== Global Resets ========== */
@@ -206,7 +211,7 @@ html.android-chrome-gesture-bar {
 
     font-weight:  400;
 
-    color:  rgb(183,  189,  192);
+    color:  var(--scrolly-muted);
 
     padding-right:  calc(var(--story-gutter-x) * .5);
 
@@ -229,7 +234,7 @@ html.android-chrome-gesture-bar {
 
     max-width:  800px;
 
-    color:  rgb(183,  189,  192);
+    color:  var(--scrolly-muted);
 
     font-size:  16px !important;
 
@@ -398,10 +403,10 @@ html.android-chrome-gesture-bar {
 .story-container .content-box  {
      opacity:  1;
      pointer-events:  all;
-     background-color:  rgba(250,  249,  247,  0.6);
+     background-color:  var(--scrolly-card-bg);
      backdrop-filter:  blur(6px);
      -webkit-backdrop-filter:  blur(8px);
-     color:  var(--scrolly-bg);
+     color:  var(--scrolly-card-text);
      max-width:  min(450px,  90%);
      padding: 2.0rem;
      padding-left: 2.3rem;
@@ -413,8 +418,9 @@ html.android-chrome-gesture-bar {
 
 .story-container .content-box .content-title  {
      font-family:  var(--scrolly-font);
+     font-family:  var(--scrolly-heading-font);
      font-weight:  900;
-     color:  var(--scrolly-bg);
+     color:  var(--scrolly-card-text);
      font-size:  1.5rem;
      margin-bottom:  1rem;
      margin-top:  0;
@@ -424,7 +430,7 @@ html.android-chrome-gesture-bar {
 .story-container .content-box p  {
      font-family:  var(--scrolly-font);
      font-weight:  400;
-     color:  var(--scrolly-bg);
+     color:  var(--scrolly-card-text);
      font-size:  1.1rem;
      line-height:  1.5;
      margin-bottom:  0;
@@ -1043,3 +1049,396 @@ html.android-chrome-gesture-bar .story-container .map-legend {
  }
 
  
+
+
+/* ========== Rich content ==========
+   Section types: hero, kicker, lede, note, quote, stats, embed, list, divider,
+   and figures with credits. All colours come from the theme variables. */
+.story-container .story-heading,
+.story-container .story-subheading {
+     font-family: var(--scrolly-heading-font);
+}
+
+.story-container .text-content a,
+.story-container .content-box a {
+     color: inherit;
+     text-decoration: underline;
+     text-decoration-thickness: 1px;
+     text-underline-offset: 0.18em;
+}
+
+.story-container .text-content a:hover,
+.story-container .content-box a:hover {
+     color: var(--scrolly-accent);
+}
+
+.story-container .story-kicker,
+.story-container .content-box .content-kicker {
+     font-family: var(--scrolly-font);
+     font-size: 0.8rem;
+     font-weight: 700;
+     letter-spacing: 0.12em;
+     text-transform: uppercase;
+     color: var(--scrolly-accent);
+     margin: 2.5rem 0 0.5rem;
+}
+
+.story-container .content-box .content-kicker {
+     margin: 0 0 0.5rem;
+}
+
+.story-container .content-box .content-description p + p {
+     margin-top: 0.85em;
+}
+
+.story-container .story-lede {
+     font-size: 1.35rem;
+     line-height: 1.55;
+     color: var(--scrolly-text);
+     margin: 0 0 1.75rem;
+}
+
+.story-container .story-note {
+     font-size: 0.9rem;
+     line-height: 1.5;
+     color: var(--scrolly-muted);
+     margin: 0 0 1rem;
+}
+
+.story-container .media-caption {
+     font-size: 0.875rem;
+     line-height: 1.45;
+     color: var(--scrolly-muted);
+     margin-top: 0.6rem;
+}
+
+.story-container .media-credit {
+     font-size: 0.78rem;
+     opacity: 0.8;
+}
+
+.story-container figure {
+     margin-left: 0;
+     margin-right: 0;
+}
+
+.story-container .media-container img {
+     display: block;
+     width: 100%;
+     height: auto;
+     border-radius: 4px;
+}
+
+/* Wider than the text column */
+.story-container .media-container.position-wide,
+.story-container .story-embed.position-wide {
+     width: min(1200px, calc(100vw - 2rem));
+     max-width: none;
+     margin-left: 50%;
+     transform: translateX(-50%);
+}
+
+.story-container .media-container.position-inline {
+     max-width: 520px;
+}
+
+.story-container .story-quote {
+     margin: 2.5rem 0;
+     padding: 0 0 0 1.5rem;
+     border-left: 3px solid var(--scrolly-accent);
+}
+
+.story-container .story-quote blockquote {
+     margin: 0;
+}
+
+.story-container .story-quote blockquote p {
+     font-family: var(--scrolly-heading-font);
+     font-size: 1.5rem;
+     line-height: 1.4;
+     color: var(--scrolly-text);
+     margin: 0 0 0.75rem;
+}
+
+.story-container .story-quote .quote-attribution {
+     font-size: 0.9rem;
+     color: var(--scrolly-muted);
+}
+
+.story-container .story-stats {
+     margin: 2.5rem 0;
+}
+
+.story-container .stat-row {
+     display: grid;
+     grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+     gap: 1rem;
+     margin: 0;
+}
+
+.story-container .stat-tile {
+     display: flex;
+     flex-direction: column;
+     padding: 1.1rem 1.2rem;
+     border-top: 2px solid var(--scrolly-accent);
+     background: var(--scrolly-rule);
+     border-radius: 0 0 6px 6px;
+}
+
+.story-container .stat-label {
+     order: 2;
+     font-size: 0.9rem;
+     line-height: 1.35;
+     color: var(--scrolly-text);
+}
+
+.story-container .stat-value {
+     order: 1;
+     margin: 0 0 0.35rem;
+     font-family: var(--scrolly-font);
+     font-size: clamp(1.9rem, 4vw, 2.6rem);
+     font-weight: 700;
+     line-height: 1.05;
+     color: var(--scrolly-text);
+}
+
+.story-container .stat-note {
+     order: 3;
+     margin: 0.4rem 0 0;
+     font-size: 0.78rem;
+     line-height: 1.4;
+     color: var(--scrolly-muted);
+}
+
+.story-container .story-embed {
+     margin: 2.5rem auto;
+}
+
+.story-container .story-embed iframe {
+     display: block;
+     width: 100%;
+     height: var(--embed-height, 480px);
+     border: 0;
+     background: transparent;
+}
+
+@media (max-width: 48em) {
+     .story-container .story-embed iframe {
+          height: var(--embed-mobile-height, var(--embed-height, 480px));
+     }
+}
+
+.story-container .story-list {
+     margin: 0 0 1.5rem;
+     padding-left: 1.25rem;
+     color: var(--scrolly-muted);
+     font-size: 0.9rem;
+     line-height: 1.5;
+}
+
+.story-container .story-list li + li {
+     margin-top: 0.5rem;
+}
+
+.story-container .story-divider {
+     border: 0;
+     height: 1px;
+     background: var(--scrolly-rule);
+     margin: 3rem 0;
+}
+
+.story-container .story-hero {
+     position: relative;
+     width: 100vw;
+     min-height: calc(var(--vh, 1vh) * 100);
+     margin: -2rem 0 2rem calc(50% - 50vw);
+     display: flex;
+     align-items: flex-end;
+     overflow: hidden;
+     color: #fff;
+}
+
+.story-container .story-hero .hero-image {
+     position: absolute;
+     inset: 0;
+     width: 100%;
+     height: 100%;
+     object-fit: cover;
+}
+
+.story-container .story-hero::after {
+     content: "";
+     position: absolute;
+     inset: 0;
+     background: linear-gradient(180deg, rgba(0, 0, 0, 0) 35%, rgba(0, 0, 0, 0.72) 100%);
+}
+
+.story-container .story-hero .hero-content {
+     position: relative;
+     z-index: 1;
+     width: min(900px, 100%);
+     margin: 0 auto;
+     padding: 0 1.5rem 9vh;
+}
+
+.story-container .story-hero .hero-kicker {
+     font-size: 0.85rem;
+     font-weight: 700;
+     letter-spacing: 0.14em;
+     text-transform: uppercase;
+     margin: 0 0 1rem;
+}
+
+.story-container .story-hero .hero-title {
+     font-family: var(--scrolly-heading-font);
+     font-size: clamp(2.4rem, 6vw, 4.6rem);
+     line-height: 1.05;
+     margin: 0 0 1.25rem;
+     color: #fff;
+}
+
+.story-container .story-hero .hero-dek {
+     font-size: clamp(1.1rem, 2vw, 1.4rem);
+     line-height: 1.45;
+     max-width: 40em;
+     margin: 0 0 1.25rem;
+     color: rgba(255, 255, 255, 0.9);
+}
+
+.story-container .story-hero .hero-byline {
+     font-size: 0.95rem;
+     color: rgba(255, 255, 255, 0.85);
+     margin: 0;
+}
+
+.story-container .story-hero .hero-credit {
+     position: absolute;
+     z-index: 1;
+     right: 1rem;
+     bottom: 0.75rem;
+     margin: 0;
+     font-size: 0.72rem;
+     color: rgba(255, 255, 255, 0.7);
+}
+
+.story-container .story-hero .hero-credit a {
+     color: inherit;
+}
+
+/* ========== Layer popups ========== */
+.scrolly-popup .maplibregl-popup-content {
+     padding: 8px 10px;
+     border-radius: 6px;
+     font-family: var(--scrolly-font);
+     font-size: 13px;
+     line-height: 1.4;
+     color: #1d232a;
+     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.18);
+}
+
+.scrolly-popup strong {
+     display: block;
+     font-size: 14px;
+     margin-bottom: 2px;
+}
+
+/* ========== Before and after slider ========== */
+.story-container .story-compare {
+     margin: 2.5rem auto;
+}
+
+.story-container .compare-frame {
+     position: relative;
+     overflow: hidden;
+     border-radius: 4px;
+     --compare: 50%;
+}
+
+.story-container .compare-frame img {
+     display: block;
+     width: 100%;
+     height: auto;
+}
+
+.story-container .compare-after {
+     position: absolute;
+     inset: 0;
+     clip-path: inset(0 0 0 var(--compare));
+}
+
+.story-container .compare-after img {
+     width: 100%;
+     height: 100%;
+     object-fit: cover;
+}
+
+.story-container .compare-handle {
+     position: absolute;
+     top: 0;
+     bottom: 0;
+     left: var(--compare);
+     width: 2px;
+     margin-left: -1px;
+     background: #fff;
+     box-shadow: 0 0 6px rgba(0, 0, 0, 0.5);
+     pointer-events: none;
+}
+
+.story-container .compare-handle::after {
+     content: "";
+     position: absolute;
+     top: 50%;
+     left: 50%;
+     width: 34px;
+     height: 34px;
+     margin: -17px 0 0 -17px;
+     border-radius: 50%;
+     background: #fff;
+     box-shadow: 0 1px 6px rgba(0, 0, 0, 0.4);
+}
+
+.story-container .compare-slider {
+     position: absolute;
+     inset: 0;
+     width: 100%;
+     height: 100%;
+     margin: 0;
+     opacity: 0;
+     cursor: ew-resize;
+}
+
+.story-container .compare-slider:focus-visible + .compare-handle,
+.story-container .compare-frame:focus-within .compare-handle {
+     background: var(--scrolly-accent);
+}
+
+.story-container .compare-label {
+     position: absolute;
+     top: 0.75rem;
+     padding: 0.2rem 0.55rem;
+     border-radius: 3px;
+     background: rgba(0, 0, 0, 0.6);
+     color: #fff;
+     font-size: 0.8rem;
+     font-weight: 600;
+     pointer-events: none;
+}
+
+.story-container .compare-label-before { left: 0.75rem; }
+.story-container .compare-label-after { right: 0.75rem; }
+
+/* ========== Legend card ==========
+   A readable card on any basemap. Override --scrolly-legend-bg and --scrolly-legend-text to restyle. */
+.story-container .map-legend {
+     background: var(--scrolly-legend-bg, rgba(250, 249, 247, 0.92));
+     color: var(--scrolly-legend-text, #1d232a);
+     border-radius: 6px;
+     padding: 10px 12px;
+     box-shadow: 0 2px 12px rgba(0, 0, 0, 0.25);
+     max-width: 240px;
+}
+
+.story-container .map-legend .legend-title,
+.story-container .map-legend .legend-label {
+     color: inherit;
+}

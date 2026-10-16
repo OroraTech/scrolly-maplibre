@@ -23,6 +23,7 @@ export class LayerManager {
      * @param {Array} allLayers - All available layers
      */
     async updateVisibility(step, allLayers) {
+        this._allLayers = allLayers;
         const visible = step.visibleLayers || [];
 
         // Load any new layers that need to be visible
@@ -78,6 +79,7 @@ export class LayerManager {
      * @param {Array} allLayers - All available layers
      */
     async loadAllLayers(allLayers) {
+        this._allLayers = allLayers;
         for (const layerCfg of allLayers) {
             if (layerCfg.id && layerCfg.url) {
                 if (!this.loadedLayers.has(layerCfg.id) && !this.loadingLayers.has(layerCfg.id)) {
@@ -152,6 +154,9 @@ export class LayerManager {
                 default:
                     logger.warn(`Unknown layer type: ${layerCfg.type}`);
             }
+            this._applyStyleOptions(layerCfg, layerId);
+            this._placeInConfigOrder(layerId);
+            if (layerCfg.popup) this._attachPopup(layerCfg, layerId);
         } catch (error) {
             console.error(`Failed to load layer ${layerId}:`, error);
 
@@ -166,6 +171,70 @@ export class LayerManager {
 
             throw error;
         }
+    }
+
+    /**
+     * Applies style.filter and the layer zoom range, the same way for every source type.
+     * @param {Object} layerCfg - Layer configuration
+     * @param {string} layerId - Layer ID
+     */
+    _applyStyleOptions(layerCfg, layerId) {
+        if (!this.map.getLayer(layerId)) return;
+        if (layerCfg.style?.filter) this.map.setFilter(layerId, layerCfg.style.filter);
+        if (layerCfg.minZoom !== undefined || layerCfg.maxZoom !== undefined) {
+            this.map.setLayerZoomRange(layerId, layerCfg.minZoom ?? 0, layerCfg.maxZoom ?? 24);
+        }
+    }
+
+    /**
+     * Layers load the first time a step shows them, so move each one to its place
+     * in the config's layer order: below the first later layer already on the map.
+     * @param {string} layerId - Layer ID
+     */
+    _placeInConfigOrder(layerId) {
+        const order = (this._allLayers || []).map(l => l.id);
+        const index = order.indexOf(layerId);
+        if (index < 0 || !this.map.getLayer(layerId)) return;
+        const before = order.slice(index + 1).find(id => this.map.getLayer(id));
+        if (before) this.map.moveLayer(layerId, before);
+    }
+
+    /**
+     * Shows a popup on hover or tap. The template fills {property} placeholders
+     * from the feature, and each line becomes its own row. Text only, never HTML.
+     * @param {Object} layerCfg - Layer configuration with a popup template
+     * @param {string} layerId - Layer ID
+     */
+    _attachPopup(layerCfg, layerId) {
+        if (typeof maplibregl === 'undefined' || !maplibregl.Popup) return;
+        const template = Array.isArray(layerCfg.popup) ? layerCfg.popup.join('\n') : String(layerCfg.popup);
+        const popup = new maplibregl.Popup({ closeButton: false, closeOnClick: false, className: 'scrolly-popup', offset: 10 });
+
+        const fill = (props) => template.replace(/\{([\w.-]+)\}/g, (_, key) => {
+            const value = props?.[key];
+            if (value === undefined || value === null || value === '') return '—';
+            return typeof value === 'number' ? value.toLocaleString('en-US', { maximumFractionDigits: 1 }) : String(value);
+        });
+
+        const show = (e) => {
+            const feature = e.features?.[0];
+            if (!feature) return;
+            const content = document.createElement('div');
+            fill(feature.properties).split('\n').forEach((line, i) => {
+                const row = document.createElement(i === 0 ? 'strong' : 'div');
+                row.textContent = line;
+                content.appendChild(row);
+            });
+            this.map.getCanvas().style.cursor = 'pointer';
+            popup.setLngLat(e.lngLat).setDOMContent(content).addTo(this.map);
+        };
+
+        this.map.on('mousemove', layerId, show);
+        this.map.on('click', layerId, show);
+        this.map.on('mouseleave', layerId, () => {
+            this.map.getCanvas().style.cursor = '';
+            popup.remove();
+        });
     }
 
     /**

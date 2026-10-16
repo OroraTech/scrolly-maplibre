@@ -17,7 +17,8 @@ export class MapManager {
      * @param {Object} config - Map configuration
      * @returns {Object} The initialized map instance
      */
-    async initialize(config) {        
+    async initialize(config) {
+        this.config = config;        
         // Initialize PMTiles protocol if needed
         await this._initializePMTiles();
 
@@ -52,7 +53,8 @@ export class MapManager {
         let customAttribution =
         '<a href="https://maplibre.org/" target="_blank" rel="noopener">MapLibre</a>';
 
-        if (isIOS) {
+        // Credit MapTiler only when the built-in MapTiler basemap is in use
+        if (isIOS && !config.initParameters.customStyle) {
         customAttribution = [
             '<a href="https://maplibre.org/" target="_blank" rel="noopener">MapLibre</a>',
             '<a href="https://www.maptiler.com/copyright/" target="_blank" rel="noopener">© MapTiler</a>',
@@ -70,7 +72,8 @@ export class MapManager {
 
             this.map.addControl(
                 new maplibregl.AttributionControl({
-                    compact: false,
+                    // Collapse to the info button on small screens
+                    compact: window.innerWidth <= 768,
                     customAttribution
                 }),
                 'bottom-right'
@@ -147,11 +150,18 @@ export class MapManager {
             });
             
             // Handle errors
-            this.map.once('error', (e) => {
+            const onError = (e) => {
+                // A missing or broken tile should not stop the map; only style errors are fatal
+                if (e.sourceId || e.tile) {
+                    logger.warn(`Tile error in ${e.sourceId || 'a source'}: ${e.error?.message || 'unknown'}`);
+                    return;
+                }
+                this.map.off('error', onError);
                 clearTimeout(timeout);
                 clearTimeout(idleFallbackTimeout);
                 reject(new Error(`Map load error: ${e.error?.message || 'Unknown error'}`));
-            });
+            };
+            this.map.on('error', onError);
         });
 
         try {
@@ -265,7 +275,8 @@ export class MapManager {
             center: mapSettings.center,
             zoom: mapSettings.zoom,
             pitch: mapSettings.pitch,
-            bearing: mapSettings.bearing
+            bearing: mapSettings.bearing,
+        padding: mapSettings.padding
         });
     }
 
@@ -321,16 +332,38 @@ export class MapManager {
     }
 
     /**
+     * Camera padding keeps the subject of each view clear of the step cards.
+     * initParameters.cameraPadding applies above 768px and mobileCameraPadding at or below it.
+     * Each is a number or { top, right, bottom, left } in pixels; a step's map.padding overrides both.
+     * @param {Object} settings - Step or initial map settings
+     * @returns {Object} Padding for MapLibre camera calls
+     */
+    getCameraPadding(settings = {}) {
+        const params = this.config?.initParameters || {};
+        const isMobile = window.innerWidth <= 768;
+        const padding = settings.padding ?? (isMobile ? params.mobileCameraPadding : params.cameraPadding) ?? 0;
+        if (typeof padding === 'number') {
+            return { top: padding, right: padding, bottom: padding, left: padding };
+        }
+        return { top: 0, right: 0, bottom: 0, left: 0, ...padding };
+    }
+
+    /**
      * Gets responsive map settings based on screen size
      * @param {Object} baseSettings - Base map settings
      * @returns {Object} Adjusted map settings
      */
     getResponsiveMapSettings(baseSettings) {
+        // Set initParameters.responsive to false to use the configured views on every screen
+        const padding = this.getCameraPadding(baseSettings);
+        if (this.config?.initParameters?.responsive === false) {
+            return { ...baseSettings, padding };
+        }
         const width = window.innerWidth;
-        let adjustedSettings = { ...baseSettings };
+        let adjustedSettings = { ...baseSettings, padding };
 
         if (width <= 480) {
-            adjustedSettings.zoom = Math.max(baseSettings.zoom - 1.75, 5);
+            adjustedSettings.zoom = Math.max(baseSettings.zoom - 1.75, Math.min(baseSettings.zoom, 5));
             adjustedSettings.pitch = Math.max(baseSettings.pitch - 15, 0);
             adjustedSettings.center = [ 
                 baseSettings.center[0], 
@@ -338,7 +371,7 @@ export class MapManager {
             ];
             logger.debug('Using mobile (<=480px) responsive settings');
         } else if (width <= 768) {
-            adjustedSettings.zoom = Math.max(baseSettings.zoom - 1.5, 5);
+            adjustedSettings.zoom = Math.max(baseSettings.zoom - 1.5, Math.min(baseSettings.zoom, 5));
             adjustedSettings.pitch = Math.max(baseSettings.pitch - 10, 0);
             adjustedSettings.center = [ 
                 baseSettings.center[0], 
@@ -346,7 +379,7 @@ export class MapManager {
             ];
             logger.debug('Using tablet (<=768px) responsive settings');
         } else if (width <= 1024) {
-            adjustedSettings.zoom = Math.max(baseSettings.zoom - 1.25, 5);
+            adjustedSettings.zoom = Math.max(baseSettings.zoom - 1.25, Math.min(baseSettings.zoom, 5));
             adjustedSettings.pitch = Math.max(baseSettings.pitch - 5, 0);
             adjustedSettings.center = [ 
                 baseSettings.center[0], 
@@ -354,7 +387,7 @@ export class MapManager {
             ];
             logger.debug('Using laptop (<=1024px) responsive settings');
         } else if (width <= 1440) {
-            adjustedSettings.zoom = Math.max(baseSettings.zoom - 1, 5);
+            adjustedSettings.zoom = Math.max(baseSettings.zoom - 1, Math.min(baseSettings.zoom, 5));
             adjustedSettings.pitch = Math.max(baseSettings.pitch - 2, 0);
             adjustedSettings.center = [ 
                 baseSettings.center[0], 
@@ -565,7 +598,8 @@ export class MapManager {
             center: mapSettings.center,
             zoom: mapSettings.zoom,
             pitch: mapSettings.pitch,
-            bearing: mapSettings.bearing
+            bearing: mapSettings.bearing,
+        padding: mapSettings.padding
         });
     }
 

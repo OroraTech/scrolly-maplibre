@@ -287,6 +287,7 @@ export class ScrollController {
                     zoom: mapSettings.zoom,
                     pitch: mapSettings.pitch,
                     bearing: mapSettings.bearing,
+                    padding: mapSettings.padding,
                     duration: duration,
                     easing: t => t
                 });
@@ -399,6 +400,7 @@ export class ScrollController {
                     zoom: mapSettings.zoom,
                     pitch: mapSettings.pitch,
                     bearing: mapSettings.bearing,
+                    padding: mapSettings.padding,
                     duration: duration,
                     easing: t => t
                 });
@@ -451,7 +453,8 @@ export class ScrollController {
                             center: mapSettings.center,
                             zoom: mapSettings.zoom,
                             pitch: mapSettings.pitch,
-                            bearing: mapSettings.bearing
+                            bearing: mapSettings.bearing,
+                        padding: mapSettings.padding
                         });
                     }
                 }

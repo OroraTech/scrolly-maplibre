@@ -8,7 +8,8 @@ It supports:
 - PMTiles, vector tiles, and GeoJSON layers
 - Animated paths with deck.gl, for wind, rivers, routes, and other flows
 - Wind particles with [windgl-maplibre](https://github.com/jessefriend/windgl-maplibre)
-- Legends, images, and video within steps
+- Legends, popups, images, and video within steps
+- Rich text sections: a hero image, pull quotes, stat rows, embedded charts, before and after sliders, and sources
 - Interactive maps alongside the scrolling ones
 - Several stories on one page
 - Keyboard navigation, ARIA labels, and screen reader announcements
@@ -16,7 +17,7 @@ It supports:
 ## Demo
 
 The demo story follows water from a proposed mine site near the Boundary Waters in Minnesota to Hudson Bay.
-It needs a MapTiler key in `src/config/keys.js` (see step 1 below).
+It uses open Sentinel-2 imagery, so it needs no API key.
 
 ```bash
 npm install
@@ -28,7 +29,7 @@ The story config is [`src/config/example.json`](src/config/example.json), and it
 
 ## Quick start
 
-1. Install the build tools and add your MapTiler key.
+1. Install the build tools and create `keys.js`. A MapTiler key is only needed for the built-in MapTiler basemap; maps with their own `customStyle` work without one.
 
    ```bash
    npm install
@@ -110,7 +111,7 @@ Other map `initParameters`:
 
 | Option | Purpose |
 | --- | --- |
-| `customStyle` | A MapLibre style object, used instead of the built-in MapTiler basemap |
+| `customStyle` | A MapLibre style object or style URL, used instead of the built-in MapTiler basemap. A map with its own style needs no MapTiler key |
 | `cameraDuration` | Default camera move time in milliseconds |
 
 To skip preloading step images and video, set `"initParameters": { "skipAssetPreloading": true }` at the top level of the story config.
@@ -228,17 +229,70 @@ For a river network, give each reach timestamps measured from one starting point
 
 ### Content sections
 
-`preMapContent` and `postMapContent` hold text and media sections:
+`preMapContent`, `postMapContent`, and each map's `intermediateContent` hold a list of sections.
+Text in any section, and in step descriptions, can use `**bold**`, `*italic*`, and `[links](https://example.com)`.
+Formatting is built as DOM nodes, never as HTML, so story text cannot inject markup.
+
+| Type | Fields | Shows |
+| --- | --- | --- |
+| `text` | `content` (string or array of paragraphs), `style` | `heading`, `subheading`, `paragraph`, `lede`, `kicker`, or `note` |
+| `media` | `mediaType` (`image` or `video`), `url`, `alt`, `caption`, `credit`, `position` | An image or video with a caption and credit line |
+| `hero` | `image`, `alt`, `kicker`, `title`, `dek`, `byline`, `credit` | A full-screen opening image with the title over it |
+| `quote` | `content`, `attribution`, `cite` | A pull quote |
+| `stats` | `items` of `{ value, label, note }`, `caption`, `credit` | A row of headline numbers |
+| `embed` | `url`, `title`, `height`, `mobileHeight`, `caption`, `credit`, `position` | An iframe, such as an interactive chart |
+| `compare` | `before` and `after` (`{ url, alt, label }`), `caption`, `credit`, `start` | Two aligned images with a slider |
+| `list` | `items`, `ordered` | A list, such as sources |
+| `divider` | none | A thin rule |
+
+`position` is `full-width` (the text column), `wide` (up to 1200px), `inline`, `left`, or `right`.
+Any section can also set `className` and `id`.
 
 ```json
 {
   "sections": [
-    { "type": "text", "content": "Heading text", "style": "heading" },
-    { "type": "text", "content": "Paragraph text", "style": "paragraph" },
-    { "type": "media", "mediaType": "image", "url": "assets/img/photo.jpg", "caption": "Caption", "alt": "Description", "position": "full-width" }
+    { "type": "hero", "image": "img/hero.jpg", "alt": "A lake at dawn", "title": "Downstream", "dek": "Where the water goes.", "byline": "By Jesse Friend" },
+    { "type": "text", "style": "lede", "content": "The first paragraph, set larger." },
+    { "type": "text", "content": ["A paragraph with a [link](https://example.com).", "And a second paragraph."] },
+    { "type": "stats", "items": [{ "value": "1,921 km", "label": "to Hudson Bay" }] },
+    { "type": "embed", "url": "graphics/chart.html", "title": "Chart: lake alkalinity", "height": 520 }
   ]
 }
 ```
+
+An embedded page can size its own frame by posting its height to the story:
+
+```js
+window.parent.postMessage({ type: 'scrolly-embed-height', height: document.documentElement.scrollHeight }, '*');
+```
+
+Steps can also set `kicker` (a small label above the title) and `className`, and `description` can be an array of paragraphs.
+
+### Popups and filters
+
+A layer's `style.filter` takes any MapLibre filter expression, and `minZoom` and `maxZoom` set its zoom range, for every source type.
+Add `popup` to show feature properties on hover or tap. `{property}` placeholders are filled from the feature, and each line becomes a row:
+
+```json
+{ "id": "lakes", "type": "geojson", "url": "data/lakes.geojson", "popup": "{name}\nAlkalinity: {alk} mg/L", "style": { "type": "circle" } }
+```
+
+Layers are stacked in the order they appear in `layers`, whichever step shows them first.
+
+### Camera padding
+
+Step cards cover part of the map. `cameraPadding` keeps each step's `center` in the clear part of the screen above 768px, and `mobileCameraPadding` does the same on phones.
+Each is a number or `{ top, right, bottom, left }` in pixels, and a step's `map.padding` overrides both.
+
+```json
+"initParameters": {
+  "cameraPadding": { "left": 500 },
+  "mobileCameraPadding": { "bottom": 320 },
+  "responsive": false
+}
+```
+
+By default, views zoom out a little on smaller screens. Set `responsive` to `false` to use the configured zoom everywhere.
 
 ### Tracing a river route
 

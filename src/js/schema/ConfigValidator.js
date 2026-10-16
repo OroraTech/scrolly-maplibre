@@ -1,3 +1,5 @@
+import { SECTION_TYPES, TEXT_STYLES, MEDIA_POSITIONS } from '../components/Sections.js';
+
 export class ConfigValidator {
     static async loadConfig(url) {
         try {
@@ -54,19 +56,56 @@ export class ConfigValidator {
         }
 
         section.sections.forEach((content, index) => {
+            const where = `${sectionName} section ${index + 1}`;
             if (!content.type) {
-                throw new Error(`Missing type in ${sectionName} section ${index + 1}`);
+                throw new Error(`Missing type in ${where}`);
+            }
+            if (!SECTION_TYPES.includes(content.type)) {
+                throw new Error(`Unknown section type '${content.type}' in ${where}. Must be one of: ${SECTION_TYPES.join(', ')}`);
             }
 
-            if (content.type === 'text') {
-                if (!content.content) {
-                    throw new Error(`Missing content in ${sectionName} text section ${index + 1}`);
-                }
-                if (!['paragraph', 'heading'].includes(content.style)) {
-                    throw new Error(`Invalid style in ${sectionName} text section ${index + 1}`);
-                }
-            } else if (content.type === 'media') {
-                this.validateMediaContent(content, `${sectionName} section ${index + 1}`);
+            switch (content.type) {
+                case 'text':
+                    if (!content.content || (Array.isArray(content.content) && content.content.length === 0)) {
+                        throw new Error(`Missing content in ${where}`);
+                    }
+                    if (content.style && !TEXT_STYLES.includes(content.style)) {
+                        throw new Error(`Invalid style '${content.style}' in ${where}. Must be one of: ${TEXT_STYLES.join(', ')}`);
+                    }
+                    break;
+                case 'media':
+                    this.validateMediaContent(content, where);
+                    break;
+                case 'quote':
+                    if (!content.content) throw new Error(`Missing content in ${where}`);
+                    break;
+                case 'stats':
+                    if (!Array.isArray(content.items) || content.items.length === 0) {
+                        throw new Error(`Missing items in ${where}`);
+                    }
+                    content.items.forEach((item, i) => {
+                        if (item.value === undefined || !item.label) {
+                            throw new Error(`Stat ${i + 1} in ${where} needs a value and a label`);
+                        }
+                    });
+                    break;
+                case 'embed':
+                    if (!content.url) throw new Error(`Missing url in ${where}`);
+                    if (!content.title) throw new Error(`Missing title in ${where}. Embeds need a title for screen readers`);
+                    break;
+                case 'hero':
+                    if (!content.title) throw new Error(`Missing title in ${where}`);
+                    if (content.image && !content.alt) throw new Error(`Missing alt text for the hero image in ${where}`);
+                    break;
+                case 'list':
+                    if (!Array.isArray(content.items)) throw new Error(`Missing items in ${where}`);
+                    break;
+                case 'compare':
+                    ['before', 'after'].forEach(key => {
+                        if (!content[key]?.url) throw new Error(`Missing ${key}.url in ${where}`);
+                        if (!content[key].alt) throw new Error(`Missing ${key}.alt in ${where}`);
+                    });
+                    break;
             }
         });
     }
@@ -101,8 +140,8 @@ export class ConfigValidator {
             throw new Error(`Missing alt text for image in ${location}`);
         }
 
-        if (!['full-width', 'left', 'right'].includes(media.position)) {
-            throw new Error(`Invalid position in ${location}`);
+        if (media.position && !MEDIA_POSITIONS.includes(media.position)) {
+            throw new Error(`Invalid position '${media.position}' in ${location}. Must be one of: ${MEDIA_POSITIONS.join(', ')}`);
         }
     }
 
@@ -286,7 +325,12 @@ export class ConfigValidator {
             throw new Error(`Invalid isInteractive parameter in map ${mapConfig.id}`);
         }
 
-        if (mapConfig.initParameters.customStyle) {
+        if (mapConfig.intermediateContent) {
+            this.validateContentSection(mapConfig.intermediateContent, `intermediateContent of map ${mapConfig.id}`);
+        }
+
+        // A style URL is checked by MapLibre when it loads
+        if (mapConfig.initParameters.customStyle && typeof mapConfig.initParameters.customStyle !== 'string') {
             if (!mapConfig.initParameters.customStyle.version || 
                 !mapConfig.initParameters.customStyle.sources || 
                 !mapConfig.initParameters.customStyle.layers) {

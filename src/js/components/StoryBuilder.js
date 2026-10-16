@@ -1,4 +1,5 @@
 import { Logger } from '../utils/logger.js';
+import { createSection, SECTION_TYPES } from './Sections.js';
 
 const logger = new Logger('StoryBuilder');
 
@@ -78,6 +79,8 @@ export class StoryBuilder {
         const section = document.createElement('section');
         section.id = `${type}-section`;
         section.className = type.includes('intermediate') ? 'intermediate-section' : '';
+        if (content.className) section.classList.add(...String(content.className).split(/s+/).filter(Boolean));
+        if (content.id) section.id = content.id;
 
         const textContent = document.createElement('div');
         textContent.className = 'text-content';
@@ -112,63 +115,10 @@ export class StoryBuilder {
     }
 
     static createContentElement(section) {
-        switch (section.type) {
-            case 'text':
-                return this.createTextElement(section);
-            case 'media':
-                return this.createMediaElement(section);
-            default:
-                logger.warn(`Unknown section type: ${section.type}`);
-                return document.createElement('div');
+        if (!SECTION_TYPES.includes(section?.type)) {
+            logger.warn(`Unknown section type: ${section?.type}`);
         }
-    }
-
-    static createTextElement(section) {
-        if (!section?.content) {
-            logger.warn('Text section missing content');
-            return document.createElement('div');
-        }
-
-        const element = document.createElement(section.style === 'heading' ? 'div' : 'p');
-        
-        // Sanitize content - basic XSS prevention
-        const sanitizedContent = section.content.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '');
-        element.textContent = sanitizedContent; // Using textContent prevents HTML injection
-        
-        element.className = section.style === 'heading' ? 'story-heading' : (section.style || '');
-        return element;
-    }
-
-    static createMediaElement(mediaConfig) {
-        if (!mediaConfig) return null;
-
-        const mediaContainer = document.createElement('div');
-        mediaContainer.className = 'media-container';
-
-        const mediaType = mediaConfig.type === 'media' ? mediaConfig.mediaType : mediaConfig.type;
-
-        if (mediaType === 'image') {
-            const img = document.createElement('img');
-            img.src = mediaConfig.url;
-            img.alt = mediaConfig.alt || '';
-            img.className = `media-item position-${mediaConfig.position}`;
-            mediaContainer.appendChild(img);
-
-            if (mediaConfig.caption) {
-                const caption = document.createElement('p');
-                caption.className = 'media-caption';
-                caption.textContent = mediaConfig.caption;
-                mediaContainer.appendChild(caption);
-            }
-        } else if (mediaType === 'video') {
-            const video = document.createElement('video');
-            video.src = mediaConfig.url;
-            video.className = `media-item position-${mediaConfig.position}`;
-            video.controls = true;
-            mediaContainer.appendChild(video);
-        }
-
-        return mediaContainer;
+        return createSection(section);
     }
 
     static async preloadAssets(config, progressCallback) {

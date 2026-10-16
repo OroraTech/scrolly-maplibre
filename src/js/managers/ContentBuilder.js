@@ -1,3 +1,6 @@
+import { richParagraphs } from '../utils/richText.js';
+import { createFigcaption } from '../components/Sections.js';
+
 /**
  * Handles content creation and UI updates for the scrollytelling interface
  */
@@ -40,6 +43,15 @@ export class ContentBuilder {
         const box = document.createElement('div');
         box.className = 'content-box';
         box.dataset.position = step.position || 'center';
+        if (step.className) box.classList.add(...String(step.className).split(/s+/).filter(Boolean));
+
+        // Optional small label above the title, such as a chapter name
+        if (step.kicker) {
+            const kicker = document.createElement('p');
+            kicker.className = 'content-kicker';
+            kicker.textContent = step.kicker;
+            box.appendChild(kicker);
+        }
 
         // Add title if present
         if (step.title) {
@@ -83,7 +95,7 @@ export class ContentBuilder {
      * @returns {HTMLElement} Media container element
      */
     _createMedia(mediaConfig) {
-        const media = document.createElement('div');
+        const media = document.createElement('figure');
         media.className = 'media-container';
 
         if (mediaConfig.type === 'image') {
@@ -94,11 +106,9 @@ export class ContentBuilder {
             media.appendChild(video);
         }
 
-        // Add caption if present
-        if (mediaConfig.caption) {
-            const caption = this._createCaption(mediaConfig.caption);
-            media.appendChild(caption);
-        }
+        // Add caption and credit if present
+        const caption = createFigcaption(mediaConfig.caption, mediaConfig.credit);
+        if (caption) media.appendChild(caption);
 
         return media;
     }
@@ -131,25 +141,15 @@ export class ContentBuilder {
     }
 
     /**
-     * Creates a caption element
-     * @param {string} captionText - Caption text
-     * @returns {HTMLElement} Caption element
-     */
-    _createCaption(captionText) {
-        const caption = document.createElement('figcaption');
-        caption.textContent = captionText;
-        return caption;
-    }
-
-    /**
-     * Creates a description element
-     * @param {string} descriptionText - Description text
+     * Creates the description, with one paragraph per array item
+     * @param {string|string[]} descriptionText - Description text
      * @returns {HTMLElement} Description element
      */
     _createDescription(descriptionText) {
-        const p = document.createElement('p');
-        p.textContent = descriptionText;
-        return p;
+        const wrapper = document.createElement('div');
+        wrapper.className = 'content-description';
+        richParagraphs(descriptionText).forEach(p => wrapper.appendChild(p));
+        return wrapper;
     }
 
     /**

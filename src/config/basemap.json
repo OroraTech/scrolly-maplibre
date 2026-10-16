@@ -1,0 +1,41 @@
+{
+  "version": 8,
+  "name": "scrolly-maplibre open imagery",
+  "glyphs": "https://protomaps.github.io/basemaps-assets/fonts/{fontstack}/{range}.pbf",
+  "sources": {
+    "imagery": {
+      "type": "raster",
+      "tiles": ["https://tiles.maps.eox.at/wmts/1.0.0/s2cloudless_3857/default/g/{z}/{y}/{x}.jpg"],
+      "tileSize": 256,
+      "maxzoom": 14,
+      "attribution": "<a href=\"https://s2maps.eu\" target=\"_blank\" rel=\"noopener\">Sentinel-2 cloudless</a> by EOX IT Services GmbH (contains modified Copernicus Sentinel data 2016)"
+    },
+    "elevation": {
+      "type": "raster-dem",
+      "tiles": ["https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png"],
+      "encoding": "terrarium",
+      "tileSize": 256,
+      "maxzoom": 13,
+      "attribution": "Terrain: <a href=\"https://registry.opendata.aws/terrain-tiles/\" target=\"_blank\" rel=\"noopener\">Mapzen Terrain Tiles</a>"
+    }
+  },
+  "layers": [
+    { "id": "background", "type": "background", "paint": { "background-color": "#0e1512" } },
+    {
+      "id": "imagery",
+      "type": "raster",
+      "source": "imagery",
+      "paint": { "raster-saturation": -0.2, "raster-brightness-max": 0.9, "raster-contrast": 0.05 }
+    },
+    {
+      "id": "hillshade",
+      "type": "hillshade",
+      "source": "elevation",
+      "paint": {
+        "hillshade-exaggeration": 0.25,
+        "hillshade-shadow-color": "rgba(0, 0, 0, 0.45)",
+        "hillshade-highlight-color": "rgba(255, 255, 255, 0.12)"
+      }
+    }
+  ]
+}
