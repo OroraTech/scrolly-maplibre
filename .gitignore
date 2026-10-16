@@ -1,0 +1,7 @@
+node_modules/
+dist/
+src/config/keys.js
+.env
+.DS_Store
+.vscode/
+*.log

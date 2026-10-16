@@ -1,0 +1,289 @@
+{
+  "preMapContent": {
+    "sections": [
+      {
+        "type": "text",
+        "content": "scrolly-maplibre example configuration",
+        "style": "heading"
+      },
+      {
+        "type": "text",
+        "content": "This example demonstrates all available configuration options for scrolly-maplibre.",
+        "style": "paragraph"
+      },
+      {
+        "type": "media",
+        "mediaType": "image",
+        "url": "assets/img/fire_hills.jpg",
+        "caption": "Example image with caption",
+        "alt": "Aerial view of mountainous terrain",
+        "position": "full-width"
+      }
+    ]
+  },
+  "maps": [
+    {
+      "id": "scrollytelling_example",
+      "initParameters": {
+        "useScrollama": true,
+        "isInteractive": false,
+        "skipAssetPreloading": false,
+        "cameraDuration": 2250,
+        "map": {
+          "zoom": 12.5,
+          "center": [-118.5276, 34.0459],
+          "pitch": 50,
+          "bearing": 14
+        },
+        "customStyle": null
+      },
+      "layers": [
+        {
+          "id": "fire_points",
+          "type": "pmtiles",
+          "url": "https://example.com/data/fire_points.pmtiles",
+          "sourceLayer": "fire_points",
+          "minZoom": 5,
+          "maxZoom": 22,
+          "style": {
+            "type": "circle",
+            "paint": {
+              "circle-radius": 8,
+              "circle-color": "#ff4444",
+              "circle-opacity": 0.8,
+              "circle-stroke-color": "#ffffff",
+              "circle-stroke-width": 2
+            }
+          }
+        },
+        {
+          "id": "evacuation_zones",
+          "type": "geojson",
+          "url": "assets/data/evacuation_zones.geojson",
+          "style": {
+            "type": "fill",
+            "paint": {
+              "fill-color": "#ffaa00",
+              "fill-opacity": 0.3,
+              "fill-outline-color": "#ff6600"
+            }
+          }
+        },
+        {
+					"id": "wind_particles",
+					"type": "windgl",
+					"url": "https://example.com/wind/tile.json",
+					"windOptions": {
+						"particleColor": "#FAF9F7",
+						"particleSpeed": [
+						"interpolate", ["exponential", 2], ["zoom"],
+						2, 0.2, 11, 1.5, 20, 10
+						],
+						"particleSize": [
+							"interpolate", ["exponential", 2], ["zoom"],
+							2, 1, 11, 3, 20, 5
+						]
+					}
+				},
+        {
+          "id": "road_labels",
+          "type": "pmtiles",
+          "url": "https://example.com/data/roads.pmtiles",
+          "sourceLayer": "roads",
+          "minZoom": 10,
+          "maxZoom": 22,
+          "style": {
+            "type": "symbol",
+            "layout": {
+              "text-field": "{name}",
+              "text-font": ["Figtree", "Sans Serif"],
+              "symbol-placement": "line",
+              "text-anchor": "center",
+              "text-size": 12,
+              "text-rotation-alignment": "map"
+            },
+            "paint": {
+              "text-color": "#333333",
+              "text-halo-color": "#ffffff",
+              "text-halo-width": 2
+            }
+          }
+        }
+      ],
+      "steps": [
+        {
+          "id": 1,
+          "title": "Fire Ignition",
+          "description": "The fire started at this location due to electrical equipment failure.",
+          "position": "left",
+          "map": {
+            "center": [-118.56, 34.05],
+            "zoom": 14,
+            "pitch": 50,
+            "bearing": 10,
+            "duration": 2500
+          },
+          "visibleLayers": ["fire_points"],
+          "media": {
+            "type": "image",
+            "url": "assets/img/ignition_point.jpg",
+            "caption": "Ignition point captured by security camera",
+            "alt": "Power lines sparking near dry vegetation",
+            "position": "full-width"
+          }
+        },
+        {
+          "id": 2,
+          "title": "Rapid Spread",
+          "description": "High winds caused the fire to spread rapidly northeast.",
+          "position": "center",
+          "map": {
+            "center": [-118.55, 34.055],
+            "zoom": 13.5,
+            "pitch": 45,
+            "bearing": 25,
+            "duration": 3000
+          },
+          "visibleLayers": ["fire_points", "evacuation_zones"]
+        },
+        {
+          "id": 3,
+          "title": "Wind Patterns",
+          "description": "Strong Santa Ana winds drove the fire's rapid spread across the landscape.",
+          "position": "right",
+          "map": {
+            "center": [-118.54, 34.06],
+            "zoom": 12,
+            "pitch": 35,
+            "bearing": 45,
+            "duration": 2750
+          },
+          "visibleLayers": ["fire_points", "wind_animation"],
+          "media": {
+            "type": "video",
+            "url": "assets/video/wind_patterns.mp4",
+            "caption": "Meteorological data showing wind speed and direction",
+            "alt": "Animation of wind patterns during the fire event",
+            "position": "left"
+          }
+        },
+        {
+          "id": 4,
+          "title": "Evacuation Orders",
+          "description": "Mandatory evacuation orders were issued for affected neighborhoods.",
+          "position": "right",
+          "map": {
+            "center": [-118.54, 34.06],
+            "zoom": 12,
+            "pitch": 60,
+            "bearing": 45
+          },
+          "visibleLayers": ["evacuation_zones", "road_labels"]
+        }
+      ],
+      "intermediateContent": {
+        "sections": [
+          {
+            "type": "text",
+            "content": "Response and Recovery",
+            "style": "heading"
+          },
+          {
+            "type": "text",
+            "content": "Emergency responders coordinated evacuation efforts while firefighters worked to contain the blaze.",
+            "style": "paragraph"
+          }
+        ]
+      }
+    },
+    {
+      "id": "interactive_example",
+      "initParameters": {
+        "isInteractive": true,
+        "useScrollama": false,
+        "skipAssetPreloading": true,
+        "map": {
+          "zoom": 11,
+          "center": [-118.5, 34.0],
+          "pitch": 45,
+          "bearing": 0
+        },
+        "interactiveConstraints": {
+          "maxBounds": [
+            [-119.0, 33.8],
+            [-118.0, 34.2]
+          ],
+          "minZoom": 9,
+          "maxZoom": 16
+        },
+        "customStyle": null
+      },
+      "layers": [
+        {
+          "id": "burn_severity",
+          "type": "pmtiles",
+          "url": "https://example.com/data/burn_severity.pmtiles",
+          "sourceLayer": "burn_areas",
+          "minZoom": 8,
+          "maxZoom": 18,
+          "legend": {
+            "title": "Burn Severity",
+            "type": "categorical",
+            "items": [
+              { "label": "High Severity", "color": "#8B0000" },
+              { "label": "Moderate-High", "color": "#FF4500" },
+              { "label": "Moderate-Low", "color": "#FFA500" },
+              { "label": "Low Severity", "color": "#FFFF00" },
+              { "label": "Unburned", "color": "#90EE90" }
+            ]
+          },
+          "style": {
+            "type": "fill",
+            "paint": {
+              "fill-color": [
+                "match",
+                ["get", "severity"],
+                "high", "#8B0000",
+                "moderate_high", "#FF4500",
+                "moderate_low", "#FFA500",
+                "low", "#FFFF00",
+                "unburned", "#90EE90",
+                "#cccccc"
+              ],
+              "fill-opacity": 0.7,
+              "fill-outline-color": "#333333"
+            }
+          }
+        }
+      ],
+      "steps": []
+    }
+  ],
+  "postMapContent": {
+    "sections": [
+      {
+        "type": "text",
+        "content": "Lessons Learned",
+        "style": "heading"
+      },
+      {
+        "type": "text",
+        "content": "This fire highlighted the importance of early warning systems and rapid response protocols.",
+        "style": "paragraph"
+      },
+      {
+        "type": "media",
+        "mediaType": "video",
+        "url": "assets/video/recovery_efforts.mp4",
+        "caption": "Recovery efforts in the affected area",
+        "alt": "Aerial footage of post-fire recovery operations",
+        "position": "full-width"
+      },
+      {
+        "type": "text",
+        "content": "Community resilience and preparedness remain key factors in wildfire risk reduction.",
+        "style": "paragraph"
+      }
+    ]
+  }
+}

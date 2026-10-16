@@ -1,0 +1,167 @@
+/* Prevent scrolling while preloader is active */
+html:has(#preloader) {
+  overflow: hidden !important;
+  height: 100% !important;
+}
+
+body:has(#preloader) {
+  overflow: hidden !important;
+  height: 100% !important;
+  position: fixed !important;
+  width: 100% !important;
+}
+
+/* Only apply scrollbar styles when story container is present */
+html:has(.story-container) {
+  scrollbar-width: thin;
+}
+
+body:has(.story-container) ::-webkit-scrollbar {
+  width: 8px;
+}
+
+
+/* Fallback for browsers that don't support :has() */
+@supports not selector(:has(*)) {
+  /* Prevent scrolling during loading phase when preloader is present */
+  html:has(#preloader) {
+    overflow: hidden !important;
+    height: 100% !important;
+  }
+  
+  body:has(#preloader) {
+    overflow: hidden !important;
+    height: 100% !important;
+    position: fixed !important;
+    width: 100% !important;
+  }
+  
+  /* Only apply during loading phase when preloader is present */
+  html:has(#preloader) {
+    scrollbar-width: thin;
+  }
+  
+  body:has(#preloader) ::-webkit-scrollbar {
+    width: 8px;
+  }
+}
+
+#preloader {
+  position: fixed !important;
+  inset: 0 !important;                                
+  display: flex !important;
+  justify-content: center !important;
+  align-items: center !important;
+  background: var(--scrolly-bg, #111418) !important;                     
+  z-index: 999999 !important;                           
+  pointer-events: none !important;                   
+  transition: opacity .35s ease-out, visibility 0s .35s !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  overflow: hidden !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+  transform: none !important;
+  animation: none !important;
+  --scrolly-loader-size: min(220px, 45vmin);
+}
+
+#preloader.fade-out { 
+  opacity: 0 !important;
+  visibility: hidden !important;
+  z-index: -1 !important;
+}
+
+@media (orientation: landscape) and (max-height: 600px) {
+    #preloader {
+        --scrolly-loader-size: min(220px, 40vh);
+    }
+}
+
+#preloader .spinner {
+    width: 48px !important;
+    height: 48px !important;
+    border: 3px solid rgba(255, 255, 255, 0.15) !important;
+    border-top-color: var(--scrolly-accent, #5aa9e6) !important;
+    border-radius: 50% !important;
+    animation: scrolly-spin 0.9s linear infinite !important;
+}
+
+@keyframes scrolly-spin {
+    to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    #preloader .spinner {
+        animation: none !important;
+    }
+}
+
+#preloader .loader-content {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  background: transparent !important;
+}
+
+#preloader .loading-text {
+  font-family: var(--scrolly-font, sans-serif) !important;
+  font-weight: 900 !important;
+  color: var(--scrolly-text, #f7f7f5) !important;
+  font-size: 1.5rem !important;
+  margin: 2rem 0 0 !important;
+  text-align: center !important;
+  letter-spacing: 0.05em !important;
+  line-height: 1.2 !important;
+}
+
+#preloader .progress-container {
+  width: var(--scrolly-loader-size) !important;
+  max-width: var(--scrolly-loader-size) !important;
+  margin: 1.25rem auto 0 !important;
+  background-color: rgba(255, 255, 255, 0.2) !important;
+  border-radius: 8px !important;
+  overflow: hidden !important;
+  height: 3px !important;
+  position: relative !important;
+  z-index: 10000 !important;
+  padding: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+}
+
+#preloader .progress-bar {
+  height: 5px !important;
+  background-color: var(--scrolly-accent, #5aa9e6) !important;
+  transition: width 0.3s ease-out !important;
+  border-radius: 8px !important;
+  min-width: 4px !important;
+  margin: 0 !important;
+}
+
+/* Keep host page styles from leaking into the loader when the story is embedded */
+#preloader .loader-content,
+#preloader .loading-text,
+#preloader .progress-container,
+#preloader .progress-bar {
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+  transform: none !important;
+  animation: none !important;
+  text-decoration: none !important;
+  text-transform: none !important;
+  min-width: 0;
+  min-height: 0;
+}

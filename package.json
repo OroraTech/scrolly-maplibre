@@ -1,0 +1,47 @@
+{
+  "name": "scrolly-maplibre",
+  "version": "0.1.0",
+  "description": "Config-driven scrollytelling maps with MapLibre GL JS and Scrollama.",
+  "main": "src/js/core/init.js",
+  "scripts": {
+    "clean": "rimraf dist",
+    "copy-html": "cpx \"src/*.html\" dist",
+    "copy-css": "cpx \"src/styles/*.css\" dist/styles",
+    "copy:config": "cpx \"src/config/**/*\" dist/config",
+    "copy:assets": "cpx \"src/assets/**/*\" dist/assets",
+    "bundle:js": "npx rollup --bundleConfigAsCjs -c scripts/rollup.config.js",
+    "minify:js": "terser dist/js/bundle.js -c -m -o dist/js/bundle.min.js",
+    "minify:css": "cleancss -o dist/styles/styles.min.css dist/styles/styles.css && cleancss -o dist/styles/loader.min.css dist/styles/loader.css",
+    "patch:html": "replace-in-file \"js/init.js\" \"js/bundle.min.js\" dist/index.html && replace-in-file \"<link rel=\\\"stylesheet\\\" href=\\\"styles/styles.css\\\">\" \"<link rel=\\\"stylesheet\\\" href=\\\"styles/styles.min.css\\\">\" dist/index.html && replace-in-file \"<link rel=\\\"stylesheet\\\" href=\\\"styles/loader.css\\\">\" \"<link rel=\\\"stylesheet\\\" href=\\\"styles/loader.min.css\\\">\" dist/index.html && replace-in-file \"<link rel=\\\"preload\\\" href=\\\"styles/styles.css\\\"\" \"<link rel=\\\"preload\\\" href=\\\"styles/styles.min.css\\\"\" dist/index.html && replace-in-file \"<link rel=\\\"preload\\\" href=\\\"styles/loader.css\\\"\" \"<link rel=\\\"preload\\\" href=\\\"styles/loader.min.css\\\"\" dist/index.html && replace-in-file \"type=\\\"module\\\"\" \"\" dist/index.html",
+    "minify:html": "html-minifier-terser --collapse-whitespace --remove-comments --minify-css true --minify-js true -o dist/index.html dist/index.html",
+    "cleanup": "node -e \"const fs=require('fs');const path=require('path');fs.unlinkSync('dist/styles/styles.css');fs.unlinkSync('dist/js/bundle.js');fs.unlinkSync('dist/styles/loader.css');\"",
+    "build": "npm run clean && npm run copy-html && npm run copy-css && npm run copy:config && npm run copy:assets && npm run bundle:js && npm run minify:js && npm run minify:css && npm run patch:html && npm run minify:html && npm run cleanup",
+    "preview": "npx http-server dist -o",
+    "test": "node --test test/*.test.mjs"
+  },
+  "keywords": [
+    "maplibre",
+    "scrollama",
+    "scrollytelling",
+    "maps",
+    "storytelling",
+    "deck.gl"
+  ],
+  "author": "Jesse Friend",
+  "devDependencies": {
+    "@rollup/plugin-commonjs": "^28.0.3",
+    "@rollup/plugin-json": "^6.1.0",
+    "@rollup/plugin-node-resolve": "^16.0.1",
+    "clean-css-cli": "^5.6.3",
+    "cpx": "^1.2.1",
+    "html-minifier-terser": "^7.2.0",
+    "http-server": "^14.1.1",
+    "json-minify": "^1.0.0",
+    "mkdirp": "^3.0.1",
+    "replace-in-file": "^7.0.1",
+    "rimraf": "^6.0.1",
+    "rollup": "^4.41.0",
+    "terser": "^5.39.2"
+  },
+  "private": true
+}
