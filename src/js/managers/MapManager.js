@@ -1,3 +1,4 @@
+import { requireDependency, registerPMTiles } from '../runtime/dependencies.js';
 import { Logger } from '../utils/logger.js';
 
 const logger = new Logger('MapManager');
@@ -10,6 +11,7 @@ export class MapManager {
         this.mapContainer = mapContainer;
         this.mapId = mapId;
         this.map = null;
+        this._timers = new Set();
     }
 
     /**
@@ -28,6 +30,7 @@ export class MapManager {
             isInteractive: config.initParameters.isInteractive ?? false,
             useScrollama: config.initParameters.useScrollama ?? true,
             customStyle: config.initParameters.customStyle,
+            mapTilerKey: config.initParameters.mapTilerKey,
             interactiveConstraints: config.initParameters.interactiveConstraints
         });
 
@@ -43,7 +46,7 @@ export class MapManager {
 
         // Create map instance with timeout
         try {
-            this.map = new maplibregl.Map(mapOptions);
+            this.map = new (requireDependency('maplibregl').Map)(mapOptions);
         } catch (error) {
             throw new Error(`Map creation failed: ${error.message}`);
         }
@@ -71,7 +74,7 @@ export class MapManager {
             }
 
             this.map.addControl(
-                new maplibregl.AttributionControl({
+                new (requireDependency('maplibregl').AttributionControl)({
                     // Collapse to the info button on small screens
                     compact: window.innerWidth <= 768,
                     customAttribution
@@ -123,45 +126,35 @@ export class MapManager {
         // Wait for map load with timeout
         const loadTimeout = 90000; 
         const loadPromise = new Promise((resolve, reject) => {
-            const timeout = setTimeout(() => {
-                reject(new Error(`Map load timeout after ${loadTimeout}ms`));
-            }, loadTimeout);
-            
-            // Try load event
-            this.map.once('load', () => {
+            const map = this.map;
+            let timeout;
+            let fallback;
+            const cleanup = () => {
                 clearTimeout(timeout);
-                resolve();
-            });
-            
-            // Fallback to idle event (sometimes load doesn't fire but idle does)
-            const idleFallbackTimeout = setTimeout(() => {
-                if (this.map.loaded()) {
-                    clearTimeout(timeout);
-                    resolve();
-                }
-            }, 5000);
-            
-            this.map.on('idle', () => {
-                clearTimeout(idleFallbackTimeout);
-                if (this.map.loaded()) {
-                    clearTimeout(timeout);
-                    resolve();
-                }
-            });
-            
-            // Handle errors
-            const onError = (e) => {
-                // A missing or broken tile should not stop the map; only style errors are fatal
-                if (e.sourceId || e.tile) {
-                    logger.warn(`Tile error in ${e.sourceId || 'a source'}: ${e.error?.message || 'unknown'}`);
-                    return;
-                }
-                this.map.off('error', onError);
-                clearTimeout(timeout);
-                clearTimeout(idleFallbackTimeout);
-                reject(new Error(`Map load error: ${e.error?.message || 'Unknown error'}`));
+                clearTimeout(fallback);
+                map.off('load', onLoad);
+                map.off('idle', onIdle);
+                map.off('error', onError);
+                map.off('remove', onRemove);
             };
-            this.map.on('error', onError);
+            const finish = error => {
+                cleanup();
+                if (error) reject(error); else resolve();
+            };
+            const onLoad = () => finish();
+            const onIdle = () => { if (map.loaded()) finish(); };
+            const onRemove = () => finish(new Error('Map removed before initialization completed.'));
+            const onError = event => {
+                if (event.sourceId || event.tile) return;
+                finish(new Error(`Map load error: ${event.error?.message || 'Unknown error'}`));
+            };
+            map.on('load', onLoad);
+            map.on('idle', onIdle);
+            map.on('error', onError);
+            map.on('remove', onRemove);
+            timeout = setTimeout(() => finish(new Error(`Map load timeout after ${loadTimeout}ms`)), loadTimeout);
+            fallback = setTimeout(onIdle, 5000);
+            if (map.loaded()) finish();
         });
 
         try {
@@ -205,7 +198,7 @@ export class MapManager {
         
         this.addInteractiveOverlay(mapEl);
 
-        const nav = new maplibregl.NavigationControl({
+        const nav = new (requireDependency('maplibregl').NavigationControl)({
             showCompass: true,
             showZoom: true,
             visualizePitch: true
@@ -228,15 +221,7 @@ export class MapManager {
      * Initializes PMTiles protocol if not already done
      */
     async _initializePMTiles() {
-        if (typeof pmtiles !== 'undefined' && !window._pmtilesProtocolInitialized) {
-            try {
-                const protocol = new pmtiles.Protocol();
-                maplibregl.addProtocol('pmtiles', protocol.tile);
-                window._pmtilesProtocolInitialized = true;
-            } catch (error) {
-                console.error('Error initializing PMTiles protocol:', error);
-            }
-        }
+        registerPMTiles();
     }
 
     /**
@@ -455,6 +440,8 @@ export class MapManager {
      * Destroys the map instance
      */
     destroy() {
+        for (const timer of this._timers) clearTimeout(timer);
+        this._timers.clear();
         // Clean up resize observer
         if (this._resizeObserver) {
             this._resizeObserver.disconnect();
@@ -484,6 +471,14 @@ export class MapManager {
      * Setup texture error handling for Android
      * @private
      */
+    _schedule(callback, delay) {
+        const timer = setTimeout(() => {
+            this._timers.delete(timer);
+            if (this.map) callback();
+        }, delay);
+        this._timers.add(timer);
+    }
+
     _setupTextureErrorHandling() {
         // Aggressively force texture binding on style load
         this.map.once('style.load', () => {
@@ -496,7 +491,7 @@ export class MapManager {
                 const source = this.map.getSource(e.sourceId);
                 if (source && source.type === 'vector') {
                     // Force texture allocation for vector tiles
-                    setTimeout(() => {
+                    this._schedule(() => {
                         this._ensureTexturesReady();
                         this.map.triggerRepaint();
                     }, 200);
@@ -506,7 +501,7 @@ export class MapManager {
 
         // Ensure textures on first render
         this.map.once('render', () => {
-            setTimeout(() => {
+            this._schedule(() => {
                 this._ensureTexturesReady();
             }, 500);
         });

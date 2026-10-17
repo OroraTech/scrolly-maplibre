@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Map-free story example</title>
+<link rel="stylesheet" href="../styles/story.css">
+<style>body{margin:0}main{max-width:80rem;margin:auto}</style>
+</head>
+<body>
+<main id="story"></main>
+<script type="module">
+import { createStory } from '../story.js';
+window.example = await createStory('#story', {
+    preMapContent: { sections: [
+        { type: 'text', style: 'heading', content: 'A graphic without a map engine' },
+        { type: 'text', content: 'Scroll to change the graphic. This example requires no external runtime libraries.' },
+        { type: 'scrolly-embed', url: 'graphic.html', title: 'Example circle', steps: [
+            { title: 'Start small', content: 'The circle starts at its smallest size.' },
+            { title: 'Grow', content: 'The next step changes its size and color.' },
+            { title: 'Finish', content: 'The graphic remains independent of the story renderer.' }
+        ] }
+    ] }
+});
+</script>
+</body>
+</html>

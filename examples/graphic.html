@@ -1,0 +1,15 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Circle graphic</title>
+<style>body{margin:0;min-height:100vh;display:grid;place-items:center;background:#edf1ed}#circle{width:6rem;height:6rem;border-radius:50%;background:#4d6f86;transition:transform .3s,background .3s}@media(prefers-reduced-motion:reduce){#circle{transition:none}}</style></head>
+<body><div id="circle" role="img" aria-label="A circle that grows with each step"></div>
+<script>
+window.addEventListener('message', event => {
+    if (event.source !== window.parent || event.origin !== window.location.origin) return;
+    const { type, index } = event.data || {};
+    if (type !== 'scrolly-step' || !Number.isInteger(index) || index < 0 || index > 2) return;
+    document.getElementById('circle').style.transform = 'scale(' + (1 + index * 0.5) + ')';
+    document.getElementById('circle').style.background = ['#4d6f86', '#527565', '#8b7054'][index];
+});
+</script>
+</body></html>

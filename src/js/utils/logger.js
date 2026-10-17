@@ -19,16 +19,8 @@ const DEFAULT_LOG_LEVEL = LogLevel.ERROR; // Production: only errors
 // Allow runtime override via window object
 let currentLogLevel = DEFAULT_LOG_LEVEL;
 
-if (typeof window !== 'undefined') {
-  // Allow setting via window.LOG_LEVEL for runtime debugging
-  window.setLogLevel = (level) => {
-    currentLogLevel = level;
-  };
-  
-  // Read from window if set
-  if (window.LOG_LEVEL !== undefined) {
-    currentLogLevel = window.LOG_LEVEL;
-  }
+export function setLogLevel(level) {
+  currentLogLevel = level;
 }
 
 /**

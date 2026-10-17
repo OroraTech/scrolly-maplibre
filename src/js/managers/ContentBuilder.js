@@ -1,5 +1,5 @@
 import { richParagraphs } from '../utils/richText.js';
-import { createFigcaption } from '../components/Sections.js';
+import { createFigcaption } from '../shared/captions.js';
 
 /**
  * Handles content creation and UI updates for the scrollytelling interface
@@ -43,7 +43,7 @@ export class ContentBuilder {
         const box = document.createElement('div');
         box.className = 'content-box';
         box.dataset.position = step.position || 'center';
-        if (step.className) box.classList.add(...String(step.className).split(/s+/).filter(Boolean));
+        if (step.className) box.classList.add(...String(step.className).split(/\s+/).filter(Boolean));
 
         // Optional small label above the title, such as a chapter name
         if (step.kicker) {

@@ -4,7 +4,7 @@ import { createSection, SECTION_TYPES } from './Sections.js';
 const logger = new Logger('StoryBuilder');
 
 export class StoryBuilder {
-    static createStoryStructure(containerId, config) {
+    static createStoryStructure(containerId, config, options = {}) {
         if (!containerId || typeof containerId !== 'string') {
             throw new Error('containerId must be a non-empty string');
         }
@@ -13,8 +13,9 @@ export class StoryBuilder {
             throw new Error('config must be a valid object');
         }
         
-        if (!Array.isArray(config.maps) || config.maps.length === 0) {
-            throw new Error('config.maps must be a non-empty array');
+        const maps = config.maps ?? [];
+        if (!Array.isArray(maps)) {
+            throw new Error('config.maps must be an array');
         }
 
         let container = document.getElementById(containerId);
@@ -29,21 +30,22 @@ export class StoryBuilder {
 
         // Use containerId as namespace (sanitize if needed)
         const namespace = containerId.replace(/[^\w-]/g, '');
+        const sectionNamespace = options.namespaceSections ? namespace : '';
 
         if (config.preMapContent) {
-            container.appendChild(this.createTextSection('pre-map', config.preMapContent));
+            container.appendChild(this.createTextSection('pre-map', config.preMapContent, sectionNamespace));
         }
 
-        config.maps.forEach((mapConfig, index) => {
-            container.appendChild(this.createMapSection(mapConfig, index + 1, namespace));
+        maps.forEach((mapConfig, index) => {
+            container.appendChild(this.createMapSection(mapConfig, index + 1, namespace, sectionNamespace));
         });
 
         if (config.postMapContent) {
-            container.appendChild(this.createTextSection('post-map', config.postMapContent));
+            container.appendChild(this.createTextSection('post-map', config.postMapContent, sectionNamespace));
         }
     }
 
-    static createMapSection(mapConfig, index, namespace) {
+    static createMapSection(mapConfig, index, namespace, sectionNamespace = '') {
         const container = document.createElement('div');
         container.className = 'map-section-container';
 
@@ -67,7 +69,8 @@ export class StoryBuilder {
         if (mapConfig.intermediateContent) {
             const intermediate = this.createTextSection(
                 `intermediate-${index}`,
-                mapConfig.intermediateContent
+                mapConfig.intermediateContent,
+                sectionNamespace
             );
             container.appendChild(intermediate);
         }
@@ -75,12 +78,13 @@ export class StoryBuilder {
         return container;
     }
 
-    static createTextSection(type, content) {
+    static createTextSection(type, content, namespace = '') {
         const section = document.createElement('section');
-        section.id = `${type}-section`;
+        section.id = namespace ? `${namespace}-${type}-section` : `${type}-section`;
+        section.dataset.storySection = type;
         section.className = type.includes('intermediate') ? 'intermediate-section' : '';
-        if (content.className) section.classList.add(...String(content.className).split(/s+/).filter(Boolean));
-        if (content.id) section.id = content.id;
+        if (content.className) section.classList.add(...String(content.className).split(/\s+/).filter(Boolean));
+        if (content.id) section.id = namespace ? `${namespace}-${content.id}` : content.id;
 
         const textContent = document.createElement('div');
         textContent.className = 'text-content';

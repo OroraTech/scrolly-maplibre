@@ -1,5 +1,4 @@
-import { MapConfig } from '../schema/MapConfig.js';
-import { AnimatedPaths } from '../components/AnimatedPaths.js';
+import { ensureMapDependencies } from '../runtime/dependencies.js';
 import { MapManager } from '../managers/MapManager.js';
 import { LayerManager } from '../managers/LayerManager.js';
 import { LegendManager } from '../managers/LegendManager.js';
@@ -41,13 +40,7 @@ export class ScrollyMap {
         this._resizeDebounce = null;
         this._resizeHandler = null;
 
-        if ('scrollRestoration' in history) {
-            const original = history.scrollRestoration;
-            history.scrollRestoration = 'manual';
-            window.addEventListener('pagehide', () => {
-                history.scrollRestoration = original;
-            });
-        }
+        this._destroyed = false;
 
 
         // Bind orientation change handler
@@ -75,6 +68,7 @@ export class ScrollyMap {
         try {
             const isInteractive = this.options.config?.initParameters?.isInteractive ?? false;
             reportProgress(5);
+            await ensureMapDependencies(this.options.config, this.options);
 
             // Initialize map through MapManager
             this.map = await this.mapManager.initialize(this.options.config);
@@ -93,7 +87,7 @@ export class ScrollyMap {
             window.addEventListener('resize', this._resizeHandler, { passive: true });
 
             // Initialize other managers now that map exists
-            this.layerManager = new LayerManager(this.map);
+            this.layerManager = new LayerManager(this.map, this.options);
             this.tilePreloader = new TilePreloader(this.map);
             
             const mapEl = document.getElementById(this.options.mapContainer);
@@ -256,6 +250,8 @@ export class ScrollyMap {
      * Destroys the ScrollyMap instance
      */
     destroy() {
+        if (this._destroyed) return;
+        this._destroyed = true;
         if (this._resizeHandler) {
             window.removeEventListener('resize', this._resizeHandler);
         }
@@ -263,7 +259,8 @@ export class ScrollyMap {
             clearTimeout(this._resizeDebounce);
         }
         this.scrollController.destroy();
-        this.layerManager.destroy();
+        this.layerManager?.destroy();
+        this.legendManager?.legendElement?.remove();
         this.mapManager.destroy();
     }
 
@@ -342,7 +339,8 @@ export class ScrollyMap {
     }
 
     async updateLayerVisibility(step) {
-        return this.layerManager.updateVisibility(step);
+        await this.layerManager.updateVisibility(step, this.options.config.layers || []);
+        this.legendManager.update(step.visibleLayers || []);
     }
 
     async loadAnimatedPathsLayer(layerCfg, layerId) {

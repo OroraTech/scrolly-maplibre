@@ -1,3 +1,4 @@
+import { ensureDeckGL, requireDependency } from '../runtime/dependencies.js';
 export class AnimatedPaths {
   constructor(map, options = {}) {
     this.map = map;
@@ -189,21 +190,8 @@ export class AnimatedPaths {
   }
 
  async _show(generation) {
-  if (typeof deck === 'undefined') {
-    console.error('Deck.gl not loaded - animated paths require deck.gl library');
-    this.trackError('dependency_missing', new Error('Deck.gl not loaded'));
-
-    // Try to load deck.gl on-demand
-    if (typeof window.ensureDeckGL === 'function') {
-      await window.ensureDeckGL();
-      if (typeof deck === 'undefined') {
-        console.error('deck.gl still not available after on-demand load');
-        return;
-      }
-    } else {
-      return;
-    }
-  }
+  await ensureDeckGL(this.options.runtimeOptions || {});
+  const deck = requireDependency('deck');
 
   // Tile-based paths need the tiles to settle before they can be read
   if (!this.options.data) await new Promise(resolve => setTimeout(resolve, 1000));
@@ -360,6 +348,7 @@ export class AnimatedPaths {
   }
 
   _renderTrips(fadeOpacity, trailLength = this.options.trailLength) {
+    const deck = requireDependency('deck');
     const reveal = this.options.reveal;
     if (reveal) trailLength = Math.max(this.animationTime, 0) + 1;
     // Only recreate the TripsLayer, keep terrainLayer cached

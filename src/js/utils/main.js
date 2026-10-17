@@ -32,7 +32,7 @@ export class StoryManager {
       if (progressCallback) progressCallback(15);
 
       logger.debug(`Loading map resources...`);
-      await this.loadMapResources();
+      if (config.maps?.length) await this.loadMapResources();
       logger.debug(`Map resources loaded`);
       
       if (progressCallback) progressCallback(25);
@@ -218,20 +218,7 @@ export class StoryManager {
   }
 
   static async loadMapResources() {
-    if (!window.maplibregl) {
-      return new Promise((resolve, reject) => {
-        const script = document.createElement('script');
-        script.src = 'https://unpkg.com/maplibre-gl@5.12.0/dist/maplibre-gl.js';
-        script.onload = resolve;
-        script.onerror = reject;
-        document.head.appendChild(script);
-
-        const link = document.createElement('link');
-        link.rel = 'stylesheet';
-        link.href = 'https://unpkg.com/maplibre-gl@5.12.0/dist/maplibre-gl.css';
-        document.head.appendChild(link);
-      });
-    }
+    return;
   }
 
   static handleError(error) {

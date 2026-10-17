@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Core map example</title>
+<link rel="stylesheet" href="../styles/core.css">
+<style>body{margin:0}h1{padding:1rem;font:1.5rem system-ui}</style>
+</head>
+<body>
+<h1>A map without a story renderer</h1>
+<div id="map"></div>
+<script type="module">
+import { createMap } from '../core.js';
+const view = { center: [-91.5, 48], zoom: 7, pitch: 0, bearing: 0 };
+window.example = await createMap({
+    container: '#map',
+    config: {
+        id: 'overview',
+        initParameters: {
+            useScrollama: false,
+            isInteractive: true,
+            customStyle: {
+                version: 8,
+                sources: { osm: { type: 'raster', tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'], tileSize: 256, attribution: '© OpenStreetMap contributors' } },
+                layers: [{ id: 'base', type: 'raster', source: 'osm' }]
+            },
+            map: view
+        },
+        layers: []
+    }
+});
+</script>
+</body>
+</html>

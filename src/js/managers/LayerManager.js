@@ -1,5 +1,4 @@
-import { AnimatedPaths } from '../components/AnimatedPaths.js';
-import { WindGL } from '../components/WindGL.js'; 
+import { getDependency, requireDependency, ensureDeckGL, ensureWindGL, registerPMTiles } from '../runtime/dependencies.js';
 import { Logger } from '../utils/logger.js';
 
 const logger = new Logger('LayerManager');
@@ -8,13 +7,14 @@ const logger = new Logger('LayerManager');
  * Manages map layers loading, visibility, and data handling
  */
 export class LayerManager {
-    constructor(map) {
+    constructor(map, runtimeOptions = {}) {
         this.map = map;
         this.loadedLayers = new Set();
         this.loadingLayers = new Set();
         this.customLayers = new Map();
-        this.animatedPaths = new AnimatedPaths(map);
-        this.windGL = new WindGL(map);
+        this.runtimeOptions = runtimeOptions;
+        this.windGL = null;
+        this._destroyed = false;
     }
 
     /**
@@ -23,6 +23,7 @@ export class LayerManager {
      * @param {Array} allLayers - All available layers
      */
     async updateVisibility(step, allLayers) {
+        if (this._destroyed) return;
         this._allLayers = allLayers;
         const visible = step.visibleLayers || [];
 
@@ -48,6 +49,7 @@ export class LayerManager {
         }
 
         // Update custom layer visibility
+        if (this._destroyed) return;
         for (const [layerId, layer] of this.customLayers) {
             const shouldShow = visible.includes(layerId);
             if (shouldShow) {
@@ -81,7 +83,7 @@ export class LayerManager {
     async loadAllLayers(allLayers) {
         this._allLayers = allLayers;
         for (const layerCfg of allLayers) {
-            if (layerCfg.id && layerCfg.url) {
+            if (layerCfg.id && (layerCfg.url || layerCfg.data)) {
                 if (!this.loadedLayers.has(layerCfg.id) && !this.loadingLayers.has(layerCfg.id)) {
                     this.loadingLayers.add(layerCfg.id);
                     try {
@@ -101,27 +103,22 @@ export class LayerManager {
      * @param {string} layerId - Layer ID
      */
     async loadAnimatedPathsLayer(layerCfg, layerId) {
-        // Load deck.gl if not already loaded
-        if (typeof window.ensureDeckGL === 'function') {
-            await window.ensureDeckGL();
-        }
-        
-        // Check if deck.gl is now available
-        if (typeof deck === 'undefined') {
-            console.error('deck.gl failed to load - animated paths require deck.gl library');
-            return;
-        }
-        
+        await ensureDeckGL(this.runtimeOptions);
+        const { AnimatedPaths } = await import('../components/AnimatedPaths.js');
+        if (this._destroyed) return;
+
         if (!this.customLayers.has(layerId)) {
             // Tile-based paths wait for the source; paths read from a file do not need to
             if (layerCfg.type !== 'geojson') await new Promise(resolve => setTimeout(resolve, 500));
+            if (this._destroyed) return;
 
             const animatedLayer = new AnimatedPaths(this.map, {
                 sourceId: layerId,
                 sourceLayer: layerCfg.sourceLayer,
                 // GeoJSON sources are tiled too, so read whole lines from the file itself
                 data: layerCfg.type === 'geojson' ? (layerCfg.url || layerCfg.data) : null,
-                ...layerCfg.animationOptions
+                ...layerCfg.animationOptions,
+                runtimeOptions: this.runtimeOptions
             });
             this.customLayers.set(layerId, animatedLayer);
         }
@@ -241,9 +238,9 @@ export class LayerManager {
      * @param {string} layerId - Layer ID
      */
     _attachPopup(layerCfg, layerId) {
-        if (typeof maplibregl === 'undefined' || !maplibregl.Popup) return;
+        if (!getDependency('maplibregl')?.Popup) return;
         const template = Array.isArray(layerCfg.popup) ? layerCfg.popup.join('\n') : String(layerCfg.popup);
-        const popup = new maplibregl.Popup({ closeButton: false, closeOnClick: false, className: 'scrolly-popup', offset: 10 });
+        const popup = new (requireDependency('maplibregl').Popup)({ closeButton: false, closeOnClick: false, className: 'scrolly-popup', offset: 10 });
 
         const fill = (props) => template.replace(/\{([\w.-]+)\}/g, (_, key) => {
             const value = props?.[key];
@@ -278,11 +275,13 @@ export class LayerManager {
      * @param {string} layerId - Layer ID
      */
     async _loadWindGLLayer(layerCfg, layerId) {
-        if (!window.windGL) {
-            throw new Error('WindGL library not loaded');
+        await ensureWindGL(this.runtimeOptions);
+        if (this._destroyed) return;
+        if (!this.windGL) {
+            const { WindGL } = await import('../components/WindGL.js');
+            if (this._destroyed) return;
+            this.windGL = new WindGL(this.map);
         }
-
-        // Pass the entire layerCfg which contains both url and windOptions
         this.windGL.addLayer(layerId, layerCfg);
     }
 
@@ -315,11 +314,7 @@ export class LayerManager {
      */
     async _loadPMTilesLayer(layerCfg, layerId) {
         // Ensure PMTiles protocol is initialized
-        if (!window._pmtilesProtocolInitialized) {
-            const protocol = new pmtiles.Protocol();
-            maplibregl.addProtocol('pmtiles', protocol.tile);
-            window._pmtilesProtocolInitialized = true;
-        }
+        registerPMTiles();
 
         const pmtUrl = `pmtiles://${layerCfg.url}`;
 
@@ -435,6 +430,8 @@ export class LayerManager {
      * Destroys all custom layers
      */
     destroy() {
+        this._destroyed = true;
+        this.windGL?.destroy();
         this.customLayers.forEach(layer => layer.destroy());
         this.customLayers.clear();
     }

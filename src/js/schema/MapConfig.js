@@ -1,4 +1,3 @@
-import { keys } from '../../config/keys.js';
 import { Logger } from '../utils/logger.js';
 
 const logger = new Logger('MapConfig');
@@ -7,11 +6,11 @@ export class MapConfig {
     constructor(options = {}) {
         this.customStyle = options.customStyle || null;
         // The built-in basemap uses MapTiler; a map with its own style does not need a key
-        if (!keys?.mapTilerKey && !this.customStyle) {
+        if (!options.mapTilerKey && !this.customStyle) {
             throw new Error('A MapTiler API key is required unless the map sets customStyle');
         }
 
-        this.mapTilerKey = keys?.mapTilerKey || null;
+        this.mapTilerKey = options.mapTilerKey || null;
         this.useScrollama = options.useScrollama ?? true;
         this.isInteractive = options.isInteractive ?? false;
         this.interactiveConstraints = options.interactiveConstraints || null;

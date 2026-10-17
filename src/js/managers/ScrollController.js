@@ -1,3 +1,4 @@
+import { requireDependency } from '../runtime/dependencies.js';
 import { Logger } from '../utils/logger.js';
 
 const logger = new Logger('ScrollController');
@@ -34,7 +35,7 @@ export class ScrollController {
         }
         
         // Standard Scrollama setup for other devices
-        this.scroller = scrollama();
+        this.scroller = requireDependency('scrollama')();
 
         // Calculate responsive scroll offset
         const scrollOffset = this._calculateScrollOffset();
@@ -50,7 +51,8 @@ export class ScrollController {
 
         // Set up responsive resize handling
         window.removeEventListener('resize', this.scroller.resize);
-        window.addEventListener('resize', () => this._handleResize(steps));
+        this._resizeListener = () => this._handleResize(steps);
+        window.addEventListener('resize', this._resizeListener);
     }
 
     /**
@@ -150,7 +152,8 @@ export class ScrollController {
         stepElements.forEach(el => this._iosObserver.observe(el));
         
         // Set up resize handling for iOS observer
-        window.addEventListener('resize', () => this._handleIOSResize(steps), { passive: true });
+        this._iosResizeListener = () => this._handleIOSResize(steps);
+        window.addEventListener('resize', this._iosResizeListener, { passive: true });
     }
 
     /**
@@ -206,7 +209,7 @@ export class ScrollController {
             this.scroller.destroy();
         }
 
-        this.scroller = scrollama()
+        this.scroller = requireDependency('scrollama')()
             .setup({
                 step: `#${this.scrollyMap.options.scrollContainer} .scroll-step`,
                 offset: newOffset,
@@ -232,10 +235,10 @@ export class ScrollController {
         }
 
         // Add ARIA labels to content boxes
-        const storyRoot = this._getStoryContainerElement() || document;
+        const storyRoot = document.getElementById(this.scrollyMap.options.scrollContainer);
         storyRoot.querySelectorAll('.content-box').forEach((box, index) => {
             box.setAttribute('role', 'region');
-            box.setAttribute('aria-labelledby', `step-title-${index}`);
+            box.setAttribute('aria-labelledby', `step-title-${this.scrollyMap.options.mapId}-${index}`);
         });
 
         // Add keyboard navigation info
@@ -291,6 +294,12 @@ export class ScrollController {
      */
     handleKeyboard(evt) {
         if (this.currentStep === null) return;
+        if (evt.defaultPrevented || evt.altKey || evt.ctrlKey || evt.metaKey || evt.shiftKey) return;
+        if (evt.target?.closest?.('input, textarea, select, button, a, [contenteditable="true"]')) return;
+        const mapContainer = document.getElementById(this.scrollyMap.options.mapContainer)?.parentElement;
+        if (!mapContainer) return;
+        const bounds = mapContainer.getBoundingClientRect();
+        if (bounds.top > window.innerHeight / 2 || bounds.bottom < window.innerHeight / 2) return;
 
         const sections = document.querySelectorAll(`#${this.scrollyMap.options.scrollContainer} .scroll-step`);
         const maxSteps = sections.length;
@@ -299,12 +308,14 @@ export class ScrollController {
             case 'ArrowDown':
             case 'PageDown':
                 if (this.currentStep < maxSteps - 1) {
+                    evt.preventDefault();
                     this.navigateToStep(this.currentStep + 1);
                 }
                 break;
             case 'ArrowUp':
             case 'PageUp':
                 if (this.currentStep > 0) {
+                    evt.preventDefault();
                     this.navigateToStep(this.currentStep - 1);
                 }
                 break;
@@ -350,7 +361,8 @@ export class ScrollController {
 
             // Reset navigation flag
             const maxDuration = Math.max(1000, step.map?.duration ?? 2250);
-            setTimeout(() => {
+            clearTimeout(this._navigationTimeout);
+            this._navigationTimeout = setTimeout(() => {
                 this.isNavigating = false;
             }, maxDuration + 100);
         }
@@ -527,6 +539,12 @@ export class ScrollController {
      * Destroys the scroll controller
      */
     destroy() {
+        clearTimeout(this._navigationTimeout);
+        window.removeEventListener('resize', this._resizeListener);
+        window.removeEventListener('resize', this._iosResizeListener);
+        window.removeEventListener('resize', this._progressHandler);
+        window.removeEventListener('scroll', this._progressHandler);
+        clearTimeout(this.orientationTimeout);
         if (this.scroller) {
             this.scroller.destroy();
         }

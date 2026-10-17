@@ -40,76 +40,11 @@ initPlatformSafeArea();
 
 import { StoryManager } from '../utils/main.js';
 
-/**
- * Script loader that guarantees each src is only injected once.
- */
-// simple deduped script loader
-const loadScriptOnce = (() => {
-  const cache = new Map();
-  return (src, globalName) => {
-    if (globalName && window[globalName]) return Promise.resolve(window[globalName]);
-    if (cache.has(src)) return cache.get(src);
-    const p = new Promise((resolve, reject) => {
-      const script = document.createElement('script');
-      script.src = src;
-      script.crossOrigin = 'anonymous'; // helps align with preloads if any
-      script.async = false; // preserve order if needed
-      script.onload = () => {
-        if (globalName) resolve(window[globalName]);
-        else resolve();
-      };
-      script.onerror = () => reject(new Error(`Failed to load script ${src}`));
-      document.head.appendChild(script);
-    });
-    cache.set(src, p);
-    return p;
-  };
-})();
-
-function loadCssOnce(href) {
-  if (document.querySelector(`link[rel="stylesheet"][href="${href}"]`)) return;
-  const link = document.createElement('link');
-  link.rel = 'stylesheet';
-  link.href = href;
-  document.head.appendChild(link);
-}
-
-const DECK_GL_VER = '9.1.14';
-
-async function ensureDependencies() {
-  try {
-    loadCssOnce('https://unpkg.com/maplibre-gl@5.12.0/dist/maplibre-gl.css');
-
-    const essentialPromise = Promise.all([
-      loadScriptOnce('https://unpkg.com/maplibre-gl@5.12.0/dist/maplibre-gl.js'),
-      loadScriptOnce('https://cdn.jsdelivr.net/gh/jessefriend/windgl-maplibre@v0.1.3/dist/windgl.umd.js'),
-      loadScriptOnce('https://unpkg.com/pmtiles@4.3.0/dist/pmtiles.js'),
-      loadScriptOnce('https://unpkg.com/scrollama')
-    ]);
-
-    await essentialPromise;
-    
-  } catch (err) {
-    throw err;
-  }
-}
-
-// Load deck.gl only when AnimatedPaths is needed
-async function ensureDeckGL() {
-  if (window.deck) {
-    return Promise.resolve();
-  }
-
-  return Promise.all([
-    loadScriptOnce(`https://unpkg.com/deck.gl@${DECK_GL_VER}/dist.min.js`, 'deck'),
-    loadScriptOnce(`https://unpkg.com/@deck.gl/geo-layers@${DECK_GL_VER}/dist.min.js`),
-    loadScriptOnce(`https://unpkg.com/@deck.gl/extensions@${DECK_GL_VER}/dist.min.js`),
-    loadScriptOnce(`https://unpkg.com/@deck.gl/mapbox@${DECK_GL_VER}/dist.min.js`)
-  ]);
-}
-
-// Export for use in LayerManager
+import { ensureDeckGL } from '../runtime/dependencies.js';
+import { setLogLevel } from '../utils/logger.js';
 window.ensureDeckGL = ensureDeckGL;
+window.setLogLevel = setLogLevel;
+if (window.LOG_LEVEL !== undefined) setLogLevel(window.LOG_LEVEL);
 
 class BackgroundCleanupManager {
   constructor() {
@@ -557,6 +492,11 @@ async function initStoryForId(scrollId, scriptEl, preloader) {
 
     window.__scrollymap_background_cleanup?.registerManager(manager);
 
+    if (!manager.maps.length) {
+      preloader.completeStory(scrollId);
+      return manager;
+    }
+
     globalTracker.onAllMapsReady(() => {
       perStoryUpdater(95);
       setTimeout(() => {
@@ -590,7 +530,6 @@ async function initAllStories() {
   const preloader = new Preloader();
   preloader.update(5);
 
-  await ensureDependencies();
   preloader.update(25);
 
   const managers = [];
@@ -609,54 +548,13 @@ window.bootstrapScrollId = async (scrollId) => {
   const match = assignments.find((a) => a.scrollId === String(scrollId));
   const preloader = new Preloader();
   if (match) {
-    await ensureDependencies();
     await initStoryForId(match.scrollId, match.scriptEl, preloader);
     await preloader.onAllComplete();
   } else {
-    await ensureDependencies();
     await initStoryForId(String(scrollId), null, preloader);
     await preloader.onAllComplete();
   }
 };
-
-function checkWebGLSupport() {
-  try {
-    const canvas = document.createElement('canvas');
-    const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
-    return !!gl;
-  } catch (e) {
-    return false;
-  }
-}
-
-if (!checkWebGLSupport()) {
-  console.error('WebGL not supported');
-  
-  // Create user-friendly error message
-  const errorContainer = document.createElement('div');
-  errorContainer.className = 'webgl-error-message';
-  errorContainer.innerHTML = `
-    <div class="webgl-error-content">
-      <h2>WebGL Required</h2>
-      <p>This interactive story requires WebGL support, which is not available in your current browser.</p>
-      <p>To view this content, please:</p>
-      <ul>
-        <li>Update your browser to the latest version</li>
-        <li>Enable hardware acceleration in your browser settings</li>
-        <li>Try a different browser (Chrome, Firefox, Safari, or Edge)</li>
-      </ul>
-    </div>
-  `;
-  
-  // Insert error message at the top of the body
-  if (document.body) {
-    document.body.insertBefore(errorContainer, document.body.firstChild);
-  } else {
-    document.addEventListener('DOMContentLoaded', () => {
-      document.body.insertBefore(errorContainer, document.body.firstChild);
-    });
-  }
-}
 
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', initAllStories);

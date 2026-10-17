@@ -1,3 +1,4 @@
+import { getDependency, requireDependency } from '../runtime/dependencies.js';
 /**
  * WindGL component for adding wind particle layers to MapLibre GL maps
  */
@@ -13,12 +14,12 @@ export class WindGL {
      * @param {Object} config - WindGL layer configuration
      */
     addLayer(layerId, config) {
-        if (!window.windGL) {
+        if (!getDependency('windGL')) {
             console.error('WindGL library not loaded');
             return;
         }
 
-        const { source, particles } = window.windGL;
+        const { source, particles } = requireDependency('windGL');
         const windSource = source(config.url);
 
         const windLayer = particles({

@@ -1,30 +1,19 @@
 import { appendRichText, isSafeUrl, richParagraphs } from '../utils/richText.js';
+import { createFigcaption } from '../shared/captions.js';
+import { registerCleanup } from '../shared/lifecycle.js';
+export { createFigcaption } from '../shared/captions.js';
+export { TEXT_STYLES, SECTION_TYPES, MEDIA_POSITIONS } from '../shared/sectionTypes.js';
 
 /**
  * Builders for the content sections in preMapContent, intermediateContent, and postMapContent.
  * Every builder takes the section config and returns one element.
  */
 
-export const TEXT_STYLES = ['heading', 'subheading', 'paragraph', 'lede', 'kicker', 'note'];
-export const SECTION_TYPES = ['text', 'media', 'quote', 'stats', 'embed', 'hero', 'divider', 'list', 'compare', 'scrolly-embed'];
-export const MEDIA_POSITIONS = ['full-width', 'wide', 'inline', 'left', 'right'];
 
 function el(tag, className, doc = document) {
     const node = doc.createElement(tag);
     if (className) node.className = className;
     return node;
-}
-
-/** A caption and credit line, used under images, video, and embeds. */
-export function createFigcaption(caption, credit, doc = document) {
-    if (!caption && !credit) return null;
-    const figcaption = el('figcaption', 'media-caption', doc);
-    if (caption) appendRichText(figcaption, caption);
-    if (credit) {
-        if (caption) figcaption.appendChild(doc.createTextNode(' '));
-        figcaption.appendChild(appendRichText(el('span', 'media-credit', doc), credit));
-    }
-    return figcaption;
 }
 
 function createText(section, doc) {
@@ -145,14 +134,16 @@ function createEmbed(section, doc) {
  */
 function listenForEmbedHeight(frame) {
     if (typeof window === 'undefined') return;
-    window.addEventListener('message', (event) => {
+    const resize = event => {
         if (event.source !== frame.contentWindow) return;
         const data = event.data;
         if (!data || data.type !== 'scrolly-embed-height') return;
         const height = Number(data.height);
         if (!Number.isFinite(height) || height <= 0 || height > 10000) return;
         frame.style.height = `${Math.ceil(height)}px`;
-    });
+    };
+    window.addEventListener('message', resize);
+    registerCleanup(frame, () => window.removeEventListener('message', resize));
 }
 
 function createHero(section, doc) {
@@ -272,21 +263,23 @@ function createScrollyEmbed(section, doc) {
 
 function trackScrollySteps(wrapper, frame) {
     let last = '';
-    let queued = false;
+    let queued = null;
+    let active = true;
     const post = () => {
-        queued = false;
+        queued = null;
+        if (!active) return;
         const steps = wrapper.querySelectorAll('.se-step');
         const middle = window.innerHeight / 2;
         let index = 0;
         let progress = 0;
-        steps.forEach((stepEl, i) => {
-            const rect = stepEl.getBoundingClientRect();
+        steps.forEach((element, position) => {
+            const rect = element.getBoundingClientRect();
             if (rect.top <= middle) {
-                index = i;
-                progress = Math.max(0, Math.min(1, (middle - rect.top) / rect.height));
+                index = position;
+                progress = rect.height ? Math.max(0, Math.min(1, (middle - rect.top) / rect.height)) : 0;
             }
         });
-        steps.forEach((stepEl, i) => stepEl.classList.toggle('is-active', i === index));
+        steps.forEach((element, position) => element.classList.toggle('is-active', position === index));
         const message = { type: 'scrolly-step', index, progress: Math.round(progress * 1000) / 1000 };
         const key = `${message.index}:${message.progress}`;
         if (key === last || !frame.contentWindow) return;
@@ -294,13 +287,21 @@ function trackScrollySteps(wrapper, frame) {
         frame.contentWindow.postMessage(message, '*');
     };
     const queue = () => {
-        if (queued) return;
-        queued = true;
-        requestAnimationFrame(post);
+        if (queued !== null || !active) return;
+        queued = requestAnimationFrame(post);
     };
+    const load = () => { last = ''; post(); };
     window.addEventListener('scroll', queue, { passive: true });
     window.addEventListener('resize', queue, { passive: true });
-    frame.addEventListener('load', () => { last = ''; post(); });
+    frame.addEventListener('load', load);
+    registerCleanup(wrapper, () => {
+        active = false;
+        window.removeEventListener('scroll', queue);
+        window.removeEventListener('resize', queue);
+        frame.removeEventListener('load', load);
+        if (queued !== null) cancelAnimationFrame(queued);
+    });
+    queue();
 }
 
 const BUILDERS = {
@@ -323,6 +324,9 @@ const BUILDERS = {
  * @returns {HTMLElement}
  */
 export function createSection(section, doc = document) {
+    for (const url of [section?.url, section?.image, section?.video, section?.poster, section?.before?.url, section?.after?.url]) {
+        if (url && (!isSafeUrl(url) || /^mailto:/i.test(url))) throw new Error('Section resources require an HTTP, HTTPS, or relative URL.');
+    }
     const build = BUILDERS[section?.type];
     if (!build) return el('div', '', doc);
     const node = build(section, doc);
