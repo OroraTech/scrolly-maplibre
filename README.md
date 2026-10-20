@@ -22,7 +22,7 @@ Custom artwork, datasets, and article-specific layouts belong in your website, n
 Install the package from the GitHub release. You do not need an npm account.
 
 ```sh
-npm install https://github.com/OroraTech/scrolly-maplibre/releases/download/v0.2.1/scrolly-maplibre-0.2.1.tgz
+npm install https://github.com/OroraTech/scrolly-maplibre/releases/download/v0.2.2/scrolly-maplibre-0.2.2.tgz
 ```
 
 The package is not on the npm registry yet.
