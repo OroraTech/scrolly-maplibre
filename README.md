@@ -2,6 +2,8 @@
 
 Config-driven maps and optional story sections, built with MapLibre GL JS and Scrollama.
 
+The repository and releases are hosted by [OroraTech](https://github.com/OroraTech/scrolly-maplibre).
+
 ## Choose an entry point
 
 | Import | Purpose |
@@ -20,7 +22,7 @@ Custom artwork, datasets, and article-specific layouts belong in your website, n
 Install the package from the GitHub release. You do not need an npm account.
 
 ```sh
-npm install https://github.com/jessefriend/scrolly-maplibre/releases/download/v0.2.0/scrolly-maplibre-0.2.0.tgz
+npm install https://github.com/OroraTech/scrolly-maplibre/releases/download/v0.2.1/scrolly-maplibre-0.2.1.tgz
 ```
 
 The package is not on the npm registry yet.

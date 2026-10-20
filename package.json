@@ -1,6 +1,6 @@
 {
   "name": "scrolly-maplibre",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Config-driven scrollytelling maps with MapLibre GL JS and Scrollama.",
   "main": "./dist/core.js",
   "scripts": {
@@ -80,6 +80,6 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/jessefriend/scrolly-maplibre.git"
+    "url": "git+https://github.com/OroraTech/scrolly-maplibre.git"
   }
 }
